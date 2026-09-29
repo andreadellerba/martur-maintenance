@@ -192,6 +192,7 @@ body:not(.locked) .lock{display:none}
 .lock-box label{font-size:14px;font-weight:600;color:var(--muted-2)}
 .lock-box input{font:inherit;font-size:18px;padding:10px 12px;border:1px solid var(--line-2);border-radius:10px;background:var(--surface-2);color:var(--text)}
 .lock-err{margin:0;color:var(--weekend);font-weight:600;font-size:13px}
+.lock-go[disabled]{opacity:.5;cursor:default}
 .lock-go{height:44px;border:0;border-radius:10px;background:var(--c-pres);color:var(--on-accent);font-size:15px;font-weight:700;cursor:pointer}
 /* logo */
 .logo{height:20px;width:auto;display:block;max-width:100%}
@@ -295,10 +296,12 @@ body:not(.locked) .lock{display:none}
 <div class="lock" id="lock">
   <form class="lock-box" id="lockForm" autocomplete="off">
     <div class="lock-logo" id="lockLogo"></div>
-    <label for="lockPw">Inserisci la password per entrare</label>
+    <label for="lockEmail">Email</label>
+    <input id="lockEmail" type="email" autocomplete="username" required>
+    <label for="lockPw">Password</label>
     <input id="lockPw" type="password" autocomplete="current-password" required>
-    <p class="lock-err" id="lockErr" hidden>Password sbagliata, riprova.</p>
-    <button type="submit" class="lock-go">Entra</button>
+    <p class="lock-err" id="lockErr" hidden>Email o password sbagliata, riprova.</p>
+    <button type="submit" class="lock-go" id="lockGo" disabled>Caricamento…</button>
   </form>
 </div>
 <header class="hdr">
@@ -306,6 +309,7 @@ body:not(.locked) .lock{display:none}
   <nav class="pills" role="tablist" aria-label="Categorie" id="tabs"></nav>
   <div class="hdr-r">
     <button class="btn-o icon" id="themeBtn" aria-label="Tema chiaro o scuro" title="Tema chiaro o scuro"></button>
+    <button class="btn-o" id="logoutBtn" title="Esci (servirà di nuovo email e password)">Esci</button>
     <button class="btn-o" id="undoBtn" title="Annulla l'ultima azione (Ctrl+Z)" aria-label="Annulla l'ultima azione">↶<span class="lbl"> Annulla</span></button>
     <button class="xls" id="pdfBtn" hidden title="Scarica la turnazione del mese in PDF orizzontale">Esporta PDF</button>
     <button class="xls" id="xlsBtn" title="Scarica il mese in Excel, un foglio con tutti i dipendenti">Esporta Excel</button>
@@ -442,7 +446,10 @@ function migrate(d){
   }
   return d;
 }
-function save(){ try{ localStorage.setItem(KEY, JSON.stringify(data)); }catch(e){} }
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify(data)); }catch(e){}
+  if(window.cloudSave) window.cloudSave();
+}
 function bucket(cat, person){ data[cat] ??= {}; data[cat][person] ??= {}; return data[cat][person]; }
 function get(cat, person, key){ return ((data[cat]||{})[person]||{})[key]; }
 
@@ -1688,25 +1695,129 @@ if("serviceWorker" in navigator && window.isSecureContext && location.protocol!=
 let unlocked = false;
 if(location.protocol==="file:" && !framed) setTimeout(function wait(){ if(!unlocked) return setTimeout(wait, 800); if(!installEvt) showInstall("hint"); }, 1200);
 
-/* ---------- Password all'apertura (chiesta a ogni caricamento) ---------- */
-const PW_HASH = "dd157acefe18cfb69bc125954b880c342dae5ec7ccd242c62ad14e83a7df57d2";
-async function sha256(t){
-  const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t));
-  return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2,"0")).join("");
-}
+/* ---------- Accesso e salvataggio online (Firebase) ---------- */
+/* ogni persona di ogni categoria è un documento a sé in "registro":
+   così due persone che modificano cose diverse non si sovrascrivono */
+const FB_CONFIG = {
+  apiKey: "AIzaSyDMYAaA1jfACrmE0GPyqxL0C4NfYQbNNyc",
+  authDomain: "martur-maintenance.firebaseapp.com",
+  projectId: "martur-maintenance",
+  storageBucket: "martur-maintenance.firebasestorage.app",
+  messagingSenderId: "531327492011",
+  appId: "1:531327492011:web:dc584f67030e6e99153cee"
+};
+const FB = "https://www.gstatic.com/firebasejs/10.12.2/";
 $("lockLogo").innerHTML = document.querySelector(".brand").innerHTML;
-$("lockForm").addEventListener("submit", async e => {
-  e.preventDefault();
-  let ok = false;
-  try{ ok = (await sha256($("lockPw").value)) === PW_HASH; }catch(err){ ok = false; }
-  if(!ok){ $("lockErr").hidden = false; $("lockPw").select(); return; }
-  unlocked = true;
-  $("lockPw").value = "";
-  document.body.classList.remove("locked");
-  save();
-  render();
-});
-setTimeout(() => $("lockPw").focus(), 50);
+function lockMsg(t){ $("lockErr").textContent = t; $("lockErr").hidden = !t; }
+(async () => {
+  let A, F;
+  try{
+    const [appM, authM, fsM] = await Promise.all([import(FB+"firebase-app.js"), import(FB+"firebase-auth.js"), import(FB+"firebase-firestore.js")]);
+    A = authM; F = fsM;
+    const app = appM.initializeApp(FB_CONFIG);
+    var auth = A.getAuth(app);
+    var db;
+    try{ db = F.initializeFirestore(app, {localCache: F.persistentLocalCache({tabManager: F.persistentMultipleTabManager()})}); }
+    catch(e){ db = F.getFirestore(app); }
+  }catch(e){
+    lockMsg("Serve internet per il primo accesso. Controlla la connessione e ricarica la pagina.");
+    $("lockGo").textContent = "Entra";
+    return;
+  }
+  const col = F.collection(db, "registro");
+  const docId = (cat, person) => encodeURIComponent(cat + "|" + person);
+  const synced = {};        /* id → ultimo contenuto uguale tra app e server */
+  let unsub = null, firstServer = true, timer = null;
+
+  function buckets(){
+    const out = {};
+    for(const cat of Object.keys(data)){
+      const c = data[cat];
+      if(!c || typeof c!=="object") continue;
+      for(const person of Object.keys(c)) out[docId(cat, person)] = {cat, person, json: JSON.stringify(c[person] || {})};
+    }
+    return out;
+  }
+  function push(){
+    timer = null;
+    if(!auth.currentUser) return;
+    if(firstServer){ timer = setTimeout(push, 1000); return; }   /* aspetto i dati del server prima di scrivere */
+    const now = buckets(), by = auth.currentUser.email || "";
+    const writes = [];
+    for(const [id, b] of Object.entries(now)) if(synced[id] !== b.json) writes.push([id, b]);
+    /* persona svuotata o tolta (annulla, backup caricato): la svuoto anche online */
+    for(const id of Object.keys(synced)) if(!now[id] && synced[id] !== "{}"){
+      const [cat, person] = decodeURIComponent(id).split("|");
+      writes.push([id, {cat, person, json:"{}"}]);
+    }
+    for(const [id, b] of writes){
+      synced[id] = b.json;
+      F.setDoc(F.doc(col, id), {cat:b.cat, person:b.person, json:b.json, by, at:F.serverTimestamp()})
+        .catch(e => alertMsg("Non riesco a salvare online: " + (e.code === "permission-denied" ? "permesso negato." : "riprova tra poco.")));
+    }
+  }
+  window.cloudSave = () => { if(auth.currentUser && !timer) timer = setTimeout(push, 400); };
+
+  function listen(){
+    firstServer = true;
+    unsub = F.onSnapshot(col, {includeMetadataChanges: true}, snap => {
+      let changed = false;
+      for(const ch of snap.docChanges()){
+        if(ch.type === "removed" || ch.doc.metadata.hasPendingWrites) continue;
+        const d = ch.doc.data(), id = ch.doc.id;
+        if(synced[id] === d.json) continue;
+        if(timer && buckets()[id] && buckets()[id].json !== synced[id]) continue;   /* modifica locale in arrivo: vince quella */
+        synced[id] = d.json;
+        let v = {}; try{ v = JSON.parse(d.json); }catch(e){}
+        data[d.cat] ??= {};
+        data[d.cat][d.person] = v;
+        changed = true;
+      }
+      if(firstServer && !snap.metadata.fromCache){
+        firstServer = false;
+        /* primo collegamento: ora carico online quello che c'è solo su questo computer */
+        window.cloudSave();
+      }
+      if(changed){
+        data = migrate(data);
+        try{ localStorage.setItem(KEY, JSON.stringify(data)); }catch(e){}
+        if(!painting) render();
+      }
+    }, e => alertMsg("Collegamento al server perso: " + (e.code === "permission-denied" ? "permesso negato." : "riprova tra poco.")));
+  }
+
+  A.onAuthStateChanged(auth, user => {
+    $("lockGo").disabled = false;
+    $("lockGo").textContent = "Entra";
+    if(user){
+      unlocked = true;
+      lockMsg("");
+      $("lockPw").value = "";
+      document.body.classList.remove("locked");
+      if(!unsub) listen();
+      render();
+    } else {
+      unlocked = false;
+      if(unsub){ unsub(); unsub = null; }
+      document.body.classList.add("locked");
+      setTimeout(() => ($("lockEmail").value ? $("lockPw") : $("lockEmail")).focus(), 50);
+    }
+  });
+  $("lockForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    $("lockGo").disabled = true;
+    lockMsg("");
+    try{ await A.signInWithEmailAndPassword(auth, $("lockEmail").value.trim(), $("lockPw").value); }
+    catch(err){
+      lockMsg(err.code === "auth/network-request-failed" ? "Niente internet: serve la connessione per entrare." :
+              err.code === "auth/too-many-requests" ? "Troppi tentativi sbagliati. Riprova tra qualche minuto." :
+              "Email o password sbagliata, riprova.");
+      $("lockPw").select();
+    }
+    $("lockGo").disabled = false;
+  });
+  $("logoutBtn").onclick = () => { if(timer){ clearTimeout(timer); push(); } A.signOut(auth); };
+})();
 </script>
 </body>
 </html>

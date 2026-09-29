@@ -1,16 +1,18 @@
-GESTIONE PRESENZE MANUTENZIONE - come installarla come app
+GESTIONE PRESENZE MANUTENZIONE
 
-L'installazione vera (icona sul desktop, finestra propria, funziona anche senza internet)
-funziona solo se l'app è aperta da un indirizzo web https, non da un file sul computer.
+Indirizzo: https://andreadellerba.github.io/martur-maintenance/
 
-1. Pubblica questa cartella su un servizio gratuito, per esempio:
-   - Netlify Drop: vai su app.netlify.com/drop e trascina la cartella "presenze-app"
-   - oppure GitHub Pages
-2. Apri l'indirizzo che ti danno con Chrome: in basso a destra compare "Installa l'app sul computer".
-   Premi Installa (oppure usa l'icona di installazione nella barra dell'indirizzo).
-3. PRIMA di passare all'app installata: nella versione che usi ora vai in REPORT,
-   in fondo premi "Salva backup". Poi nell'app installata vai in REPORT e premi "Carica backup".
-   I dati restano nel browser e ogni indirizzo ha i suoi: senza backup l'app nuova parte vuota.
+ACCESSO
+Si entra con email e password. Gli utenti si creano da Firebase
+(console.firebase.google.com, progetto martur-maintenance, Authentication, Utenti, Aggiungi utente).
+Una volta entrati l'app ricorda l'accesso su quel dispositivo; il pulsante "Esci" lo chiude.
 
-Attenzione: chiunque abbia l'indirizzo può aprire la pagina, ma i dati NON sono online:
-restano solo nel computer dove li inserisci.
+DATI
+I dati sono salvati online (Firebase) e si vedono da ogni dispositivo.
+Ogni modifica si salva da sola. Senza internet l'app continua a funzionare
+e sincronizza appena torna la connessione.
+Il backup (REPORT, Salva backup) resta utile come copia di sicurezza.
+
+INSTALLARLA COME APP
+Apri l'indirizzo con Chrome e premi l'icona di installazione nella barra dell'indirizzo.
+Sul telefono: menu del browser, "Aggiungi a schermata Home".
