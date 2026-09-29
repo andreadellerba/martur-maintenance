@@ -180,7 +180,10 @@ dialog input{width:100%;font:inherit;font-size:22px;padding:10px 12px;border:1px
 .restbtns [data-c="f"]{border-color:var(--c-ferie);color:var(--c-ferie)}
 .restbtns [data-c="p"]{border-color:var(--c-par);color:var(--c-par)}
 .restbtns [data-c="cigo"]{border-color:var(--c-cigo);color:var(--c-cigo)}
-.restbtns [data-c="malattia"]{border-color:var(--c-mal);color:var(--c-mal)}
+.restbtns [data-c="malattia"]{border-color:var(--c-mal);color:var(--c-mal);grid-column:1/-1}
+.restbtns .btn[disabled]{opacity:.3;cursor:default}
+#segYear button{font-size:13px}
+#yearErr{margin:-4px 0 10px}
 
 /* password */
 body.locked>*:not(.lock){display:none!important}
@@ -350,6 +353,11 @@ body:not(.locked) .lock{display:none}
         <button type="button" data-t="f">Ferie</button>
         <button type="button" data-t="p">PAR</button>
       </div>
+      <div class="seg" id="segYear" role="group" aria-label="Anno delle ferie">
+        <button type="button" data-y="AP">Anno precedente</button>
+        <button type="button" data-y="AC">Anno corrente</button>
+      </div>
+      <p class="lock-err" id="yearErr" hidden>Scegli anno precedente o anno corrente.</p>
       <div class="chips" id="chips"></div>
       <label for="hours" style="position:absolute;left:-9999px">Ore</label>
       <input id="hours" type="number" min="0" max="24" step="0.25" inputmode="decimal" placeholder="Ore, es. 2,5">
@@ -374,7 +382,8 @@ body:not(.locked) .lock{display:none}
   <p id="restSub"></p>
   <label class="restlab">Ore da assegnare<input id="restHours" type="number" min="0" max="8" step="0.25" inputmode="decimal"></label>
   <div class="restbtns" id="restBtns">
-    <button type="button" class="btn" data-c="f">Ferie</button>
+    <button type="button" class="btn" data-c="f" data-y="AP">Ferie AP</button>
+    <button type="button" class="btn" data-c="f" data-y="AC">Ferie AC</button>
     <button type="button" class="btn" data-c="p">PAR</button>
     <button type="button" class="btn" data-c="cigo">CIGO</button>
     <button type="button" class="btn" data-c="malattia">Malattia</button>
@@ -518,6 +527,7 @@ const otExtra = (p,k) => Number(get("straordinario",p,k)) || 0;
 const otDay   = (p,k) => otAuto(p,k) + otExtra(p,k);
 const ferF    = (p,k) => get("ferie",p,k)?.f || 0;
 const ferP    = (p,k) => get("ferie",p,k)?.p || 0;
+const ferA    = (p,k) => ferF(p,k) ? get("ferie",p,k)?.a || "" : "";   /* "AP" anno precedente, "AC" anno corrente */
 const malH    = (p,k) => Number(get("malattia",p,k)) || 0;
 const cigH    = (p,k) => Number(get("cigo",p,k)) || 0;
 const covered = (p,k) => worked(p,k) + ferF(p,k) + ferP(p,k) + malH(p,k) + cigH(p,k);
@@ -701,7 +711,7 @@ function cellHTML(p, x, hol, big){
     if(abs.length && (ah>=DAY_H || v===undefined)){
       const a = abs[0];
       cls.push("abs"); style = `--ac:var(${a.color})`;
-      const top = a.label==="Malattia" ? "MAL" : a.label==="Ferie" ? "FER" : a.label;
+      const top = a.label==="Malattia" ? "MAL" : a.label==="Ferie" ? (ferA(p,k)||"FER") : a.label;
       inner = `<span class="t1">${top}</span><span class="t2">${fmt(ah)}</span>`;
       aria += `, ${abs.map(y=>y.label+" "+fmt(y.hours)+" ore").join(", ")}`;
     } else if(v!==undefined){
@@ -719,8 +729,8 @@ function cellHTML(p, x, hol, big){
       const f = ferF(p,k), pp = ferP(p,k);
       if(f+pp>0){
         cls.push("val"); style = `--ac:var(${f>=pp?"--c-ferie":"--c-par"})`;
-        inner = f && pp ? `<span class="t1 sm">F${fmt(f)}</span><span class="t2 sm">P${fmt(pp)}</span>` : `<span class="t1 sm">${f?"FER":"PAR"}</span><span class="t2">${fmt(f||pp)}</span>`;
-        aria += `, ferie ${fmt(f)} ore, PAR ${fmt(pp)} ore`;
+        inner = f && pp ? `<span class="t1 sm">F${fmt(f)}</span><span class="t2 sm">P${fmt(pp)}</span>` : `<span class="t1 sm">${f?(ferA(p,k)||"FER"):"PAR"}</span><span class="t2">${fmt(f||pp)}</span>`;
+        aria += `, ferie${ferA(p,k)?" "+ferA(p,k):""} ${fmt(f)} ore, PAR ${fmt(pp)} ore`;
       }
     } else {
       const h = hoursOf(cat,p,k);
@@ -861,7 +871,7 @@ function renderDetail(){
   if(v!==undefined) parts.push(`turno ${timeLabel(v)}`);
   const w = worked(p,k); if(w) parts.push(`${fmt(w)} h ordinarie`);
   const ot = otDay(p,k); if(ot) parts.push(`${fmt(ot)} h straordinario`);
-  for(const a of absList(p,k)) parts.push(`${fmt(a.hours)} h ${a.label.toLowerCase()==="par"?"PAR":a.label==="CIGO"?"CIGO":a.label.toLowerCase()}`);
+  for(const a of absList(p,k)) parts.push(`${fmt(a.hours)} h ${a.label.toLowerCase()==="par"?"PAR":a.label==="CIGO"?"CIGO":a.label.toLowerCase()}${a.key==="f" && ferA(p,k) ? " "+ferA(p,k) : ""}`);
   if(isWorkday(k) && covered(p,k)<DAY_H && covered(p,k)>0) parts.push(`mancano ${fmt(DAY_H-covered(p,k))} h`);
   if(!parts.length) parts.push(isWorkday(k) ? "niente inserito" : "giorno non lavorativo, niente inserito");
   const hol = holidays(yy)[k];
@@ -1070,7 +1080,7 @@ document.addEventListener("keydown", e => {
   if(map[e.key]){ state.brush = map[e.key]; render(); }
 });
 
-let editing = null, dlgMode = null, ferieType = "f";
+let editing = null, dlgMode = null, ferieType = "f", ferieYear = null;
 
 function dateLabel(key){
   const [yy,mm,dd] = key.split("-");
@@ -1104,11 +1114,13 @@ function openHours(key, cat = state.cat){
   editing = key; dlgMode = cat;
   $("hoursMode").hidden = false; $("timeMode").hidden = true;
   $("seg").hidden = cat!=="ferie";
+  showYear();
   $("dlgTitle").textContent = DLG_TITLE[cat];
   let sub = dateLabel(key);
   if(cat==="ferie"){
     const f = ferF(state.person,key), p = ferP(state.person,key);
     if(f && !p) ferieType = "f"; else if(p && !f) ferieType = "p";
+    setYear(ferA(state.person,key) || null);
     setType(ferieType);
   } else if(cat==="straordinario"){
     const a = otAuto(state.person, key);
@@ -1144,15 +1156,32 @@ function setType(t){
   ferieType = t;
   $("seg").querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x.dataset.t===t));
   if(editing && dlgMode==="ferie" && !multiKeys){ const h = curHours("ferie",editing); $("hours").value = h || ""; setChips(editing); }
+  showYear();
 }
 $("seg").addEventListener("click", e => { const x = e.target.closest("button"); if(x) setType(x.dataset.t); });
+/* ferie: anno precedente o anno corrente (per il PAR non serve) */
+function showYear(){ $("segYear").hidden = dlgMode!=="ferie" || ferieType!=="f"; $("yearErr").hidden = true; }
+function setYear(y){
+  ferieYear = y;
+  $("segYear").querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x.dataset.y===y));
+  $("yearErr").hidden = true;
+}
+$("segYear").addEventListener("click", e => { const x = e.target.closest("button"); if(x) setYear(x.dataset.y); });
+/* true se mancano le ferie senza anno scelto: il popup resta aperto */
+function needYear(v){
+  const miss = dlgMode==="ferie" && ferieType==="f" && v>0 && !ferieYear;
+  if(miss) $("yearErr").hidden = false;
+  return miss;
+}
 
 /* scrive le ore di una categoria (per ferie: il tipo scelto) */
-function writeHours(cat, key, v, type){
+function writeHours(cat, key, v, type, year){
   const b = bucket(cat, state.person);
   if(cat==="ferie"){
     const o = {f:ferF(state.person,key), p:ferP(state.person,key)};
     o[type] = isNaN(v)||v<0 ? 0 : v;
+    const a = type==="f" ? year : ferA(state.person,key);
+    if(o.f && a) o.a = a;
     if(o.f+o.p>0) b[key] = o; else delete b[key];
     return;
   }
@@ -1160,15 +1189,16 @@ function writeHours(cat, key, v, type){
 }
 function saveHours(v){
   const key = editing, cat = dlgMode;
-  if(multiKeys){ const ks = multiKeys; multiKeys = null; commit(() => ks.forEach(k => writeHours(cat, k, v, ferieType))); return; }
-  commit(() => writeHours(cat, key, v, ferieType));
+  if(multiKeys){ const ks = multiKeys; multiKeys = null; commit(() => ks.forEach(k => writeHours(cat, k, v, ferieType, ferieYear))); return; }
+  commit(() => writeHours(cat, key, v, ferieType, ferieYear));
   if(cat!=="straordinario") askRest(key);
 }
 $("chips").addEventListener("click", e => {
   const x = e.target.closest("button"); if(!x) return;
+  if(needYear(Number(x.dataset.h))) return;
   $("dlg").close(); saveHours(Number(x.dataset.h));
 });
-$("dlgForm").addEventListener("submit", () => {
+$("dlgForm").addEventListener("submit", e => {
   if(dlgMode==="time"){
     const s = $("tStart").value, e = $("tEnd").value;
     if(!s || !e) return;
@@ -1178,7 +1208,9 @@ $("dlgForm").addEventListener("submit", () => {
     askRest(key);
     return;
   }
-  saveHours(parseFloat(String($("hours").value).replace(",",".")));
+  const v = parseFloat(String($("hours").value).replace(",","."));
+  if(needYear(v)){ e.preventDefault(); return; }
+  saveHours(v);
 });
 $("dlgClear").onclick = () => {
   const key = editing;
@@ -1200,13 +1232,16 @@ function askRest(key){
   const miss = DAY_H - c;
   const parts = [];
   if(worked(state.person,key)) parts.push(`${fmt(worked(state.person,key))} h lavorate`);
-  if(ferF(state.person,key)) parts.push(`${fmt(ferF(state.person,key))} h ferie`);
+  if(ferF(state.person,key)) parts.push(`${fmt(ferF(state.person,key))} h ferie${ferA(state.person,key) ? " "+ferA(state.person,key) : ""}`);
   if(ferP(state.person,key)) parts.push(`${fmt(ferP(state.person,key))} h PAR`);
   if(malH(state.person,key)) parts.push(`${fmt(malH(state.person,key))} h malattia`);
   if(cigH(state.person,key)) parts.push(`${fmt(cigH(state.person,key))} h CIGO`);
   $("restTitle").textContent = `Mancano ${fmt(miss)} ore`;
   $("restSub").textContent = `${dateLabel(key)}: ${parts.join(", ")}. A cosa assegni le ore mancanti?`;
   $("restHours").value = r2(miss);
+  /* un giorno ha un solo anno di ferie: se c'è già, l'altro non si può aggiungere */
+  const ya = ferA(state.person,key);
+  $("restBtns").querySelectorAll("[data-y]").forEach(b => { b.disabled = !!ya && b.dataset.y!==ya; });
   // piccolo ritardo: il primo popup si deve chiudere prima
   setTimeout(() => { if(!$("rest").open) $("rest").showModal(); }, 0);
 }
@@ -1217,7 +1252,7 @@ $("restBtns").addEventListener("click", e => {
   $("rest").close();
   if(isNaN(v) || v<=0) return;
   commit(() => {
-    if(c==="f" || c==="p") writeHours("ferie", key, (c==="f"?ferF:ferP)(state.person,key) + v, c);
+    if(c==="f" || c==="p") writeHours("ferie", key, (c==="f"?ferF:ferP)(state.person,key) + v, c, x.dataset.y);
     else writeHours(c, key, hoursOf(c,state.person,key) + v);
   });
 });
