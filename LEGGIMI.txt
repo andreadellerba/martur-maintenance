@@ -1,0 +1,16 @@
+GESTIONE PRESENZE MANUTENZIONE - come installarla come app
+
+L'installazione vera (icona sul desktop, finestra propria, funziona anche senza internet)
+funziona solo se l'app è aperta da un indirizzo web https, non da un file sul computer.
+
+1. Pubblica questa cartella su un servizio gratuito, per esempio:
+   - Netlify Drop: vai su app.netlify.com/drop e trascina la cartella "presenze-app"
+   - oppure GitHub Pages
+2. Apri l'indirizzo che ti danno con Chrome: in basso a destra compare "Installa l'app sul computer".
+   Premi Installa (oppure usa l'icona di installazione nella barra dell'indirizzo).
+3. PRIMA di passare all'app installata: nella versione che usi ora vai in REPORT,
+   in fondo premi "Salva backup". Poi nell'app installata vai in REPORT e premi "Carica backup".
+   I dati restano nel browser e ogni indirizzo ha i suoi: senza backup l'app nuova parte vuota.
+
+Attenzione: chiunque abbia l'indirizzo può aprire la pagina, ma i dati NON sono online:
+restano solo nel computer dove li inserisci.
