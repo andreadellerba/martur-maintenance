@@ -17,7 +17,7 @@
   --text:#EDEFF2; --muted:#8C95A3; --muted-2:#A7AFBC;
   --weekend:#F87171; --weekend-bg:#22171B; --weekend-line:#3A2329;
   --s1:#38BDF8; --s2:#34D399; --sc:#FBBF24; --s1l:#38BDF8; --s2l:#34D399; --sm:#94A3B8; --c-turn:#C7D2FE;
-  --c-pres:#34D399; --c-stra:#FCD34D; --c-ferie:#60A5FA; --c-par:#7DD3FC; --c-mal:#A78BFA; --c-cigo:#FB7185;
+  --c-pres:#34D399; --c-stra:#FCD34D; --c-ferie:#60A5FA; --c-par:#7DD3FC; --c-mal:#A78BFA; --c-cigo:#FB7185; --c-vis:#2DD4BF; --c-men:#FB923C;
   --on-fill:#0F1216; --on-accent:#0F1216;
   --today:#4ADE80; --faint:#6F7886; --btn-text:#CBD1DA; --cell-line:#20252C; --hover-line:#4A5260; --backdrop:rgba(0,0,0,.6);
   --accent:var(--c-pres);
@@ -31,7 +31,7 @@
   --text:#14171C; --muted:#56606E; --muted-2:#3E4652;
   --weekend:#C81E3A; --weekend-bg:#FCEBED; --weekend-line:#F3C9D0;
   --sm:#94A3B8; --c-turn:#4338CA;
-  --c-pres:#047857; --c-stra:#A16207; --c-ferie:#1D4ED8; --c-par:#0E7490; --c-mal:#6D28D9; --c-cigo:#BE123C;
+  --c-pres:#047857; --c-stra:#A16207; --c-ferie:#1D4ED8; --c-par:#0E7490; --c-mal:#6D28D9; --c-cigo:#BE123C; --c-vis:#0F766E; --c-men:#C2410C;
   --on-accent:#FFFFFF;
   --today:#15803D; --faint:#646D7A; --btn-text:#2F3640; --cell-line:#DDE2E9; --hover-line:#8E97A4; --backdrop:rgba(20,23,28,.45);
   color-scheme:light;
@@ -116,6 +116,8 @@ button{font:inherit;color:inherit}
 .cell .t1{font-size:14px;font-weight:700}
 .cell .t2{font-size:14px;font-weight:700;opacity:.72}
 .cell .sm{font-size:10px;letter-spacing:-.03em}
+.cell .ap{font-family:var(--body);font-size:8px;font-weight:800;letter-spacing:.02em;padding:0 2px;border-radius:3px;background:var(--ac);color:var(--on-fill)}
+.cell.lg .ap{font-size:11px;padding:1px 4px}
 .cell .big{font-size:18px;letter-spacing:-.02em}
 .cell .xs{font-size:8px;letter-spacing:.02em;opacity:.8}
 .cell .man{position:absolute;top:3px;right:3px;width:6px;height:6px;border-radius:50%;background:var(--text);box-shadow:0 0 0 2px var(--bg)}
@@ -180,10 +182,11 @@ dialog input{width:100%;font:inherit;font-size:22px;padding:10px 12px;border:1px
 .restbtns [data-c="f"]{border-color:var(--c-ferie);color:var(--c-ferie)}
 .restbtns [data-c="p"]{border-color:var(--c-par);color:var(--c-par)}
 .restbtns [data-c="cigo"]{border-color:var(--c-cigo);color:var(--c-cigo)}
-.restbtns [data-c="malattia"]{border-color:var(--c-mal);color:var(--c-mal);grid-column:1/-1}
+.restbtns [data-c="malattia"]{border-color:var(--c-mal);color:var(--c-mal)}
+.restbtns [data-c="visita"]{border-color:var(--c-vis);color:var(--c-vis)}
+.restbtns [data-c="mensa"]{border-color:var(--c-men);color:var(--c-men)}
 .restbtns .btn[disabled]{opacity:.3;cursor:default}
-#segYear button{font-size:13px}
-#yearErr{margin:-4px 0 10px}
+#yearBtn{font-size:13px}
 
 /* password */
 body.locked>*:not(.lock){display:none!important}
@@ -264,7 +267,7 @@ body:not(.locked) .lock{display:none}
 .rp .tot{font-weight:700}
 .rp tr.sum>*{font-weight:700;background:var(--surface-2)}
 .rp .zero{color:var(--faint)}
-.rp .c-pres{color:var(--c-pres)} .rp .c-stra{color:var(--c-stra)} .rp .c-ferie{color:var(--c-ferie)} .rp .c-par{color:var(--c-par)} .rp .c-mal{color:var(--c-mal)} .rp .c-cigo{color:var(--c-cigo)}
+.rp .c-pres{color:var(--c-pres)} .rp .c-stra{color:var(--c-stra)} .rp .c-ferie{color:var(--c-ferie)} .rp .c-par{color:var(--c-par)} .rp .c-mal{color:var(--c-mal)} .rp .c-cigo{color:var(--c-cigo)} .rp .c-vis{color:var(--c-vis)} .rp .c-men{color:var(--c-men)}
 .rp th.sh{color:var(--muted-2)} .rp td.sh{color:var(--text)}
 .rp th.sh:first-of-type,.rp td.sh{border-left:0}
 .swd{display:inline-block;width:9px;height:9px;border-radius:3px;background:var(--sw);margin-right:5px;vertical-align:0}
@@ -312,7 +315,6 @@ body:not(.locked) .lock{display:none}
   <nav class="pills" role="tablist" aria-label="Categorie" id="tabs"></nav>
   <div class="hdr-r">
     <button class="btn-o icon" id="themeBtn" aria-label="Tema chiaro o scuro" title="Tema chiaro o scuro"></button>
-    <button class="btn-o" id="logoutBtn" title="Esci (servirà di nuovo email e password)">Esci</button>
     <button class="btn-o" id="undoBtn" title="Annulla l'ultima azione (Ctrl+Z)" aria-label="Annulla l'ultima azione">↶<span class="lbl"> Annulla</span></button>
     <button class="xls" id="pdfBtn" hidden title="Scarica la turnazione del mese in PDF orizzontale">Esporta PDF</button>
     <button class="xls" id="xlsBtn" title="Scarica il mese in Excel, un foglio con tutti i dipendenti">Esporta Excel</button>
@@ -353,11 +355,7 @@ body:not(.locked) .lock{display:none}
         <button type="button" data-t="f">Ferie</button>
         <button type="button" data-t="p">PAR</button>
       </div>
-      <div class="seg" id="segYear" role="group" aria-label="Anno delle ferie">
-        <button type="button" data-y="AP">Anno precedente</button>
-        <button type="button" data-y="AC">Anno corrente</button>
-      </div>
-      <p class="lock-err" id="yearErr" hidden>Scegli anno precedente o anno corrente.</p>
+      <div class="seg" id="yearRow"><button type="button" id="yearBtn" aria-pressed="false" title="Ore dell'anno precedente">Anno precedente</button></div>
       <div class="chips" id="chips"></div>
       <label for="hours" style="position:absolute;left:-9999px">Ore</label>
       <input id="hours" type="number" min="0" max="24" step="0.25" inputmode="decimal" placeholder="Ore, es. 2,5">
@@ -382,9 +380,12 @@ body:not(.locked) .lock{display:none}
   <p id="restSub"></p>
   <label class="restlab">Ore da assegnare<input id="restHours" type="number" min="0" max="8" step="0.25" inputmode="decimal"></label>
   <div class="restbtns" id="restBtns">
+    <button type="button" class="btn" data-c="f" data-y="">Ferie</button>
     <button type="button" class="btn" data-c="f" data-y="AP">Ferie AP</button>
-    <button type="button" class="btn" data-c="f" data-y="AC">Ferie AC</button>
-    <button type="button" class="btn" data-c="p">PAR</button>
+    <button type="button" class="btn" data-c="p" data-y="">PAR</button>
+    <button type="button" class="btn" data-c="p" data-y="AP">PAR AP</button>
+    <button type="button" class="btn" data-c="visita">Visita medica</button>
+    <button type="button" class="btn" data-c="mensa">Pausa mensa</button>
     <button type="button" class="btn" data-c="cigo">CIGO</button>
     <button type="button" class="btn" data-c="malattia">Malattia</button>
   </div>
@@ -487,11 +488,20 @@ function timeLabel(v){
 }
 /* assenza principale del giorno (quella con più ore) */
 const ABS = [
-  {key:"malattia", label:"Malattia", color:"--c-mal",   hex:"7C3AED", h:(p,k)=>malH(p,k)},
-  {key:"f",        label:"Ferie",    color:"--c-ferie", hex:"2563EB", h:(p,k)=>ferF(p,k)},
-  {key:"p",        label:"PAR",      color:"--c-par",   hex:"0891B2", h:(p,k)=>ferP(p,k)},
-  {key:"cigo",     label:"CIGO",     color:"--c-cigo",  hex:"E11D48", h:(p,k)=>cigH(p,k)}
+  {key:"malattia", label:"Malattia",      short:"MAL",  mk:"M", color:"--c-mal",   hex:"7C3AED", h:(p,k)=>malH(p,k)},
+  {key:"f",        label:"Ferie",         short:"FER",  mk:"F", color:"--c-ferie", hex:"2563EB", h:(p,k)=>ferF(p,k)},
+  {key:"p",        label:"PAR",           short:"PAR",  mk:"P", color:"--c-par",   hex:"0891B2", h:(p,k)=>ferP(p,k)},
+  {key:"cigo",     label:"CIGO",          short:"CIGO", mk:"C", color:"--c-cigo",  hex:"E11D48", h:(p,k)=>cigH(p,k)},
+  {key:"visita",   label:"Visita medica", short:"VIS",  mk:"V", color:"--c-vis",   hex:"0D9488", h:(p,k)=>visH(p,k)},
+  {key:"mensa",    label:"Pausa mensa",   short:"MEN",  mk:"MS", color:"--c-men",   hex:"EA580C", h:(p,k)=>menH(p,k)}
 ];
+/* sigla e nome per esteso, con "anno precedente" per ferie e PAR */
+function absAP(a,p,k){ return (a.key==="f" && ferA(p,k)) || (a.key==="p" && parA(p,k)) ? "AP" : ""; }
+function absShort(a,p,k){ return a.short + (absAP(a,p,k) ? " AP" : ""); }
+function absName(a,p,k){
+  const n = a.key==="p" || a.key==="cigo" ? a.label : a.label.toLowerCase();
+  return (a.key==="f" && ferA(p,k)) || (a.key==="p" && parA(p,k)) ? n + " AP" : n;
+}
 function absList(p,k){ return ABS.map(a => ({...a, hours:a.h(p,k)})).filter(a => a.hours>0).sort((a,b)=>b.hours-a.hours); }
 
 /* turno manuale: durata e straordinario oltre il turno normale di riferimento */
@@ -520,23 +530,29 @@ function baseCalc(p,k){
   return c;
 }
 /* ore di assenza (ferie, PAR, malattia, CIGO): prevalgono sul turno */
-const absH    = (p,k) => ferF(p,k) + ferP(p,k) + malH(p,k) + cigH(p,k);
+const absH    = (p,k) => ferF(p,k) + ferP(p,k) + malH(p,k) + cigH(p,k) + visH(p,k) + menH(p,k);
 const worked  = (p,k) => Math.min(baseCalc(p,k).worked, Math.max(0, DAY_H - absH(p,k)));
 const otAuto  = (p,k) => (isWorkday(k) && absH(p,k) >= DAY_H) ? 0 : baseCalc(p,k).ot;
 const otExtra = (p,k) => Number(get("straordinario",p,k)) || 0;
 const otDay   = (p,k) => otAuto(p,k) + otExtra(p,k);
 const ferF    = (p,k) => get("ferie",p,k)?.f || 0;
 const ferP    = (p,k) => get("ferie",p,k)?.p || 0;
-const ferA    = (p,k) => ferF(p,k) ? get("ferie",p,k)?.a || "" : "";   /* "AP" anno precedente, "AC" anno corrente */
+/* ore dell'anno precedente: "AP" se segnate, altrimenti "" (anno corrente) */
+const ferA    = (p,k) => ferF(p,k) && get("ferie",p,k)?.a==="AP" ? "AP" : "";
+const parA    = (p,k) => ferP(p,k) && get("ferie",p,k)?.pa==="AP" ? "AP" : "";
 const malH    = (p,k) => Number(get("malattia",p,k)) || 0;
 const cigH    = (p,k) => Number(get("cigo",p,k)) || 0;
-const covered = (p,k) => worked(p,k) + ferF(p,k) + ferP(p,k) + malH(p,k) + cigH(p,k);
+const visH    = (p,k) => Number(get("visita",p,k)) || 0;
+const menH    = (p,k) => Number(get("mensa",p,k)) || 0;
+const covered = (p,k) => worked(p,k) + absH(p,k);
 /* valore di una categoria in un giorno, in ore */
 function hoursOf(cat,p,k){
   if(cat==="straordinario") return otDay(p,k);
   if(cat==="ferie") return ferF(p,k) + ferP(p,k);
   if(cat==="malattia") return malH(p,k);
   if(cat==="cigo") return cigH(p,k);
+  if(cat==="visita") return visH(p,k);
+  if(cat==="mensa") return menH(p,k);
   return worked(p,k);
 }
 
@@ -711,15 +727,15 @@ function cellHTML(p, x, hol, big){
     if(abs.length && (ah>=DAY_H || v===undefined)){
       const a = abs[0];
       cls.push("abs"); style = `--ac:var(${a.color})`;
-      const top = a.label==="Malattia" ? "MAL" : a.label==="Ferie" ? (ferA(p,k)||"FER") : a.label;
-      inner = `<span class="t1">${top}</span><span class="t2">${fmt(ah)}</span>`;
+      const top = a.short, ap = absAP(a,p,k);
+      inner = `<span class="t1">${top}</span>${ap ? `<span class="ap">AP</span>` : ""}<span class="t2">${fmt(ah)}</span>`;
       aria += `, ${abs.map(y=>y.label+" "+fmt(y.hours)+" ore").join(", ")}`;
     } else if(v!==undefined){
       const id = sid(v), s = SHIFTS[id];
       const [a,b] = id==="M" ? [tshort(v.s), tshort(v.e)] : (s ? s.time.split("-") : ["P",""]);
       cls.push("shift"); style = `--ac:var(${s ? s.color : "--sm"})`;
       inner = `<span class="t1${a.length>2?" sm":""}">${a}</span><span class="t2${b.length>2?" sm":""}">${b}</span>`;
-      if(abs.length) inner += `<span class="mk" style="--mc:var(${abs[0].color})">${abs[0].label==="Malattia"?"M":abs[0].label[0]}${fmt(abs[0].hours)}</span>`;
+      if(abs.length) inner += `<span class="mk" style="--mc:var(${abs[0].color})">${abs[0].mk}${fmt(abs[0].hours)}</span>`;
       aria += `, turno ${timeLabel(v)}`;
     }
     if(ot) { inner += `<span class="ot">${fmt(ot).length>3 ? fmt(ot) : "+"+fmt(ot)}</span>`; aria += `, straordinario ${fmt(ot)} ore`; }
@@ -729,8 +745,8 @@ function cellHTML(p, x, hol, big){
       const f = ferF(p,k), pp = ferP(p,k);
       if(f+pp>0){
         cls.push("val"); style = `--ac:var(${f>=pp?"--c-ferie":"--c-par"})`;
-        inner = f && pp ? `<span class="t1 sm">F${fmt(f)}</span><span class="t2 sm">P${fmt(pp)}</span>` : `<span class="t1 sm">${f?(ferA(p,k)||"FER"):"PAR"}</span><span class="t2">${fmt(f||pp)}</span>`;
-        aria += `, ferie${ferA(p,k)?" "+ferA(p,k):""} ${fmt(f)} ore, PAR ${fmt(pp)} ore`;
+        inner = f && pp ? `<span class="t1 sm">F${fmt(f)}</span><span class="t2 sm">P${fmt(pp)}</span>` : `<span class="t1 sm">${f?"FER":"PAR"}</span>${(f?ferA:parA)(p,k) ? `<span class="ap">AP</span>` : ""}<span class="t2">${fmt(f||pp)}</span>`;
+        aria += `, ferie${ferA(p,k)?" AP":""} ${fmt(f)} ore, PAR${parA(p,k)?" AP":""} ${fmt(pp)} ore`;
       }
     } else {
       const h = hoursOf(cat,p,k);
@@ -771,7 +787,7 @@ function renderSingle(p){
     if(cat==="turnazione"){ const t = wk.map(k => turnOf(p,k)).find(Boolean); main = t ? TNAME[t] : "–"; }
     else if(cat==="presenze"){
       const w = wk.reduce((a,k) => a + worked(p,k), 0), o = wk.reduce((a,k) => a + otDay(p,k), 0);
-      main = w ? `${fmt(w)} h` : "–"; sub = o ? `+${fmt(o)} str.` : "";
+      main = w ? `${fmt(w)} ore lavorate` : "–"; sub = o ? `+${fmt(o)} str.` : "";
     } else if(cat==="ferie"){
       const f = wk.reduce((a,k) => a + ferF(p,k), 0), pp = wk.reduce((a,k) => a + ferP(p,k), 0);
       main = f+pp ? `${fmt(f+pp)} h` : "–"; sub = f && pp ? `F ${fmt(f)} · P ${fmt(pp)}` : pp ? "PAR" : f ? "ferie" : "";
@@ -871,7 +887,7 @@ function renderDetail(){
   if(v!==undefined) parts.push(`turno ${timeLabel(v)}`);
   const w = worked(p,k); if(w) parts.push(`${fmt(w)} h ordinarie`);
   const ot = otDay(p,k); if(ot) parts.push(`${fmt(ot)} h straordinario`);
-  for(const a of absList(p,k)) parts.push(`${fmt(a.hours)} h ${a.label.toLowerCase()==="par"?"PAR":a.label==="CIGO"?"CIGO":a.label.toLowerCase()}${a.key==="f" && ferA(p,k) ? " "+ferA(p,k) : ""}`);
+  for(const a of absList(p,k)) parts.push(`${fmt(a.hours)} h ${absName(a,p,k)}`);
   if(isWorkday(k) && covered(p,k)<DAY_H && covered(p,k)>0) parts.push(`mancano ${fmt(DAY_H-covered(p,k))} h`);
   if(!parts.length) parts.push(isWorkday(k) ? "niente inserito" : "giorno non lavorativo, niente inserito");
   const hol = holidays(yy)[k];
@@ -882,6 +898,8 @@ function renderDetail(){
       <button class="act" data-a="time">Orario manuale</button>
       <button class="act" data-a="malattia" style="--ac:var(--c-mal)">Malattia</button>
       <button class="act" data-a="ferie" style="--ac:var(--c-ferie)">Ferie / PAR</button>
+      <button class="act" data-a="visita" style="--ac:var(--c-vis)">Visita medica</button>
+      <button class="act" data-a="mensa" style="--ac:var(--c-men)">Pausa mensa</button>
       <button class="act" data-a="cigo" style="--ac:var(--c-cigo)">CIGO</button>
       <button class="act" data-a="straordinario" style="--ac:var(--c-stra)">+ Straordinario</button>
       <button class="act clear" data-a="clear" aria-label="Svuota il giorno">Svuota</button>
@@ -1065,7 +1083,7 @@ $("detail").addEventListener("click", e => {
   if(a==="reset") return commit(() => { delete bucket("turnazione",p)[k]; });
   if(a==="copyday") return commit(() => { bucket("presenze",p)[k] = TO_PRES[turnOf(p,k)]; });
   if(a==="time") return openTime(k);
-  if(a==="clear") return commit(() => { for(const c of ["presenze","straordinario","ferie","malattia","cigo"]) delete bucket(c,p)[k]; });
+  if(a==="clear") return commit(() => { for(const c of ["presenze","straordinario","ferie","malattia","cigo","visita","mensa"]) delete bucket(c,p)[k]; });
   openHours(k, a);
 });
 
@@ -1086,7 +1104,7 @@ function dateLabel(key){
   const [yy,mm,dd] = key.split("-");
   return `${state.person}, ${Number(dd)} ${MONTHS[Number(mm)-1]} ${yy}`;
 }
-const DLG_TITLE = {straordinario:"Straordinario extra", ferie:"Ferie / PAR", malattia:"Malattia", cigo:"CIGO"};
+const DLG_TITLE = {straordinario:"Straordinario extra", ferie:"Ferie / PAR", malattia:"Malattia", cigo:"CIGO", visita:"Visita medica", mensa:"Pausa mensa"};
 function curHours(cat, key){
   if(cat==="ferie") return ferieType==="p" ? ferP(state.person,key) : ferF(state.person,key);
   return Number(get(cat,state.person,key)) || 0;
@@ -1094,8 +1112,9 @@ function curHours(cat, key){
 function setChips(key){
   /* "Resto" = ore che mancano per arrivare a 8 nella giornata */
   const rest = key && dlgMode!=="straordinario" && isWorkday(key) ? DAY_H - covered(state.person,key) + curHours(dlgMode,key) : 0;
-  let html = [1,2,4,8].map(h => `<button type="button" data-h="${h}">${h} h</button>`).join("");
-  if(rest>0 && rest<DAY_H && ![1,2,4,8].includes(r2(rest))) html += `<button type="button" data-h="${r2(rest)}" class="restchip">Resto ${fmt(rest)} h</button>`;
+  const hs = dlgMode==="mensa" ? [0.5,1] : [1,2,4,8];
+  let html = hs.map(h => `<button type="button" data-h="${h}">${h===0.5 ? "30 min" : h+" h"}</button>`).join("");
+  if(rest>0 && rest<DAY_H && !hs.includes(r2(rest))) html += `<button type="button" data-h="${r2(rest)}" class="restchip">Resto ${fmt(rest)} h</button>`;
   $("chips").innerHTML = html;
 }
 let multiKeys = null;
@@ -1120,14 +1139,13 @@ function openHours(key, cat = state.cat){
   if(cat==="ferie"){
     const f = ferF(state.person,key), p = ferP(state.person,key);
     if(f && !p) ferieType = "f"; else if(p && !f) ferieType = "p";
-    setYear(ferA(state.person,key) || null);
     setType(ferieType);
   } else if(cat==="straordinario"){
     const a = otAuto(state.person, key);
     if(a) sub += `. Dal turno: ${fmt(a)} h (automatico), qui aggiungi solo le ore in più.`;
   }
   const cur = cat==="ferie" ? curHours(cat,key) : get(cat,state.person,key);
-  $("hours").value = cur ? cur : "";
+  $("hours").value = cur ? cur : cat==="mensa" ? 0.5 : "";   /* mensa: di solito 30 minuti */
   $("dlgSub").textContent = sub;
   setChips(key);
   $("dlgClear").style.visibility = hoursOf(cat,state.person,key) > (cat==="straordinario" ? otAuto(state.person,key) : 0) ? "visible" : "hidden";
@@ -1156,32 +1174,25 @@ function setType(t){
   ferieType = t;
   $("seg").querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x.dataset.t===t));
   if(editing && dlgMode==="ferie" && !multiKeys){ const h = curHours("ferie",editing); $("hours").value = h || ""; setChips(editing); }
+  if(editing && dlgMode==="ferie") setYear((t==="p" ? parA : ferA)(state.person,editing));
   showYear();
 }
 $("seg").addEventListener("click", e => { const x = e.target.closest("button"); if(x) setType(x.dataset.t); });
-/* ferie: anno precedente o anno corrente (per il PAR non serve) */
-function showYear(){ $("segYear").hidden = dlgMode!=="ferie" || ferieType!=="f"; $("yearErr").hidden = true; }
-function setYear(y){
-  ferieYear = y;
-  $("segYear").querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x.dataset.y===y));
-  $("yearErr").hidden = true;
-}
-$("segYear").addEventListener("click", e => { const x = e.target.closest("button"); if(x) setYear(x.dataset.y); });
-/* true se mancano le ferie senza anno scelto: il popup resta aperto */
-function needYear(v){
-  const miss = dlgMode==="ferie" && ferieType==="f" && v>0 && !ferieYear;
-  if(miss) $("yearErr").hidden = false;
-  return miss;
-}
+/* ferie e PAR: "Anno precedente" acceso = "AP", spento = anno corrente */
+function showYear(){ $("yearBtn").hidden = dlgMode!=="ferie"; }
+function setYear(y){ ferieYear = y || ""; $("yearBtn").setAttribute("aria-pressed", ferieYear==="AP"); }
+$("yearBtn").onclick = () => setYear(ferieYear==="AP" ? "" : "AP");
 
-/* scrive le ore di una categoria (per ferie: il tipo scelto) */
+/* scrive le ore di una categoria (per ferie: il tipo scelto; year "AP"/"" o undefined = lascia com'è) */
 function writeHours(cat, key, v, type, year){
   const b = bucket(cat, state.person);
   if(cat==="ferie"){
+    const old = get("ferie",state.person,key) || {};
     const o = {f:ferF(state.person,key), p:ferP(state.person,key)};
     o[type] = isNaN(v)||v<0 ? 0 : v;
-    const a = type==="f" ? year : ferA(state.person,key);
-    if(o.f && a) o.a = a;
+    const ya = type==="f" && year!==undefined ? year : old.a, yp = type==="p" && year!==undefined ? year : old.pa;
+    if(o.f && ya==="AP") o.a = "AP";
+    if(o.p && yp==="AP") o.pa = "AP";
     if(o.f+o.p>0) b[key] = o; else delete b[key];
     return;
   }
@@ -1195,7 +1206,6 @@ function saveHours(v){
 }
 $("chips").addEventListener("click", e => {
   const x = e.target.closest("button"); if(!x) return;
-  if(needYear(Number(x.dataset.h))) return;
   $("dlg").close(); saveHours(Number(x.dataset.h));
 });
 $("dlgForm").addEventListener("submit", e => {
@@ -1208,9 +1218,7 @@ $("dlgForm").addEventListener("submit", e => {
     askRest(key);
     return;
   }
-  const v = parseFloat(String($("hours").value).replace(",","."));
-  if(needYear(v)){ e.preventDefault(); return; }
-  saveHours(v);
+  saveHours(parseFloat(String($("hours").value).replace(",",".")));
 });
 $("dlgClear").onclick = () => {
   const key = editing;
@@ -1232,16 +1240,15 @@ function askRest(key){
   const miss = DAY_H - c;
   const parts = [];
   if(worked(state.person,key)) parts.push(`${fmt(worked(state.person,key))} h lavorate`);
-  if(ferF(state.person,key)) parts.push(`${fmt(ferF(state.person,key))} h ferie${ferA(state.person,key) ? " "+ferA(state.person,key) : ""}`);
-  if(ferP(state.person,key)) parts.push(`${fmt(ferP(state.person,key))} h PAR`);
-  if(malH(state.person,key)) parts.push(`${fmt(malH(state.person,key))} h malattia`);
-  if(cigH(state.person,key)) parts.push(`${fmt(cigH(state.person,key))} h CIGO`);
+  for(const a of absList(state.person,key)) parts.push(`${fmt(a.hours)} h ${absName(a,state.person,key)}`);
   $("restTitle").textContent = `Mancano ${fmt(miss)} ore`;
   $("restSub").textContent = `${dateLabel(key)}: ${parts.join(", ")}. A cosa assegni le ore mancanti?`;
   $("restHours").value = r2(miss);
-  /* un giorno ha un solo anno di ferie: se c'è già, l'altro non si può aggiungere */
-  const ya = ferA(state.person,key);
-  $("restBtns").querySelectorAll("[data-y]").forEach(b => { b.disabled = !!ya && b.dataset.y!==ya; });
+  /* ferie e PAR hanno un solo anno per giorno: se ce ne sono già, l'altro anno non si può aggiungere */
+  $("restBtns").querySelectorAll("[data-c=f],[data-c=p]").forEach(b => {
+    const c = b.dataset.c, has = (c==="f" ? ferF : ferP)(state.person,key), y = (c==="f" ? ferA : parA)(state.person,key);
+    b.disabled = !!has && (b.dataset.y || "") !== y;
+  });
   // piccolo ritardo: il primo popup si deve chiudere prima
   setTimeout(() => { if(!$("rest").open) $("rest").showModal(); }, 0);
 }
@@ -1272,7 +1279,7 @@ function colName(n){ let s=""; while(n>0){ const r=(n-1)%26; s=String.fromCharCo
 /* testo e colore della riga Turno: l'assenza di giornata intera prevale */
 function xlDay(p,k){
   const v = get("presenze",p,k), abs = absList(p,k);
-  if(abs.length && (absH(p,k) >= DAY_H || v===undefined)) return {text:abs[0].label==="Malattia"?"MAL":abs[0].label.toUpperCase(), hex:abs[0].hex};
+  if(abs.length && (absH(p,k) >= DAY_H || v===undefined)) return {text:absShort(abs[0],p,k), hex:abs[0].hex};
   if(v===undefined) return {text:"", hex:null};
   return {text:timeLabel(v), hex:SHIFTS[sid(v)]?.hex || "5f6773"};
 }
@@ -1327,7 +1334,9 @@ async function exportExcel(){
       {label:"Ferie",          val:ferF,   hex:"2563EB"},
       {label:"PAR",            val:ferP,   hex:"0891B2"},
       {label:"Malattia",       val:malH,   hex:"7C3AED"},
-      {label:"CIGO",           val:cigH,   hex:"E11D48"}
+      {label:"CIGO",           val:cigH,   hex:"E11D48"},
+      {label:"Visita medica",  val:visH,   hex:"0D9488"},
+      {label:"Pausa mensa",    val:menH,   hex:"EA580C"}
     ];
     let r = 5;
     const totRef = {};
@@ -1380,8 +1389,8 @@ async function exportExcel(){
     ws.getCell(`A${r}`).value = `RIEPILOGO ${MONTHS[m].toUpperCase()} ${y}`;
     ws.getCell(`A${r}`).font = {bold:true, size:13};
     r++;
-    const SUMHEX = [null, "059669", "059669", "B45309", "2563EB", "0891B2", "7C3AED", "E11D48"];
-    const heads = ["Dipendente","Giorni","Ore lav.","Straord.","Ferie","PAR","Malattia","CIGO"];
+    const SUMHEX = [null, "059669", "059669", "B45309", "2563EB", "0891B2", "7C3AED", "E11D48", "0D9488", "EA580C"];
+    const heads = ["Dipendente","Giorni","Ore lav.","Straord.","Ferie","PAR","Malattia","CIGO","Visita med.","Mensa"];
     const hr = ws.getRow(r);
     heads.forEach((h,i) => {
       const c = hr.getCell(i === 0 ? 1 : i+1);
@@ -1394,19 +1403,19 @@ async function exportExcel(){
     for(const p of PEOPLE){
       const row = ws.getRow(r);
       row.getCell(1).value = p; row.getCell(1).font = {bold:true};
-      ["Turno","Ore lavorate","Straordinario","Ferie","PAR","Malattia","CIGO"].forEach((lab,i) => {
+      ["Turno","Ore lavorate","Straordinario","Ferie","PAR","Malattia","CIGO","Visita medica","Pausa mensa"].forEach((lab,i) => {
         const c = row.getCell(i+2);
         c.value = {formula: totRef[p][lab]};
         c.numFmt = i===0 ? "0" : "General";
         c.alignment = {horizontal:"center"};
         c.font = {bold:true, color:{argb:"FF"+SUMHEX[i+1]}};
       });
-      for(let c=1; c<=8; c++) row.getCell(c).border = border;
+      for(let c=1; c<=heads.length; c++) row.getCell(c).border = border;
       r++;
     }
     const tr = ws.getRow(r);
     tr.getCell(1).value = "TOTALE REPARTO"; tr.getCell(1).font = {bold:true};
-    for(let c=2; c<=8; c++){
+    for(let c=2; c<=heads.length; c++){
       const cell = tr.getCell(c), col = colName(c);
       cell.value = {formula:`SUM(${col}${firstSum}:${col}${r-1})`};
       cell.numFmt = c===2 ? "0" : "General"; cell.font = {bold:true};
@@ -1558,17 +1567,17 @@ function keysBetween(a, b){
 }
 const RSH = [["1","06-14"],["1L","05:30-14"],["2","14-22"],["2L","14-22:30"],["C","07-15"],["M","Manuale"]];
 function statsRange(p, keys){
-  const st = {gg:0, ord:0, ot:0, f:0, par:0, mal:0, cig:0, sh:{"1":0,"1L":0,"2":0,"2L":0,"C":0,"M":0}};
+  const st = {gg:0, ord:0, ot:0, f:0, par:0, mal:0, cig:0, vis:0, men:0, sh:{"1":0,"1L":0,"2":0,"2L":0,"C":0,"M":0}};
   for(const k of keys){
     const v = get("presenze",p,k);
     if(v!==undefined && !(isWorkday(k) && absH(p,k) >= DAY_H)){ st.gg++; const id = sid(v); if(id in st.sh) st.sh[id]++; }
     st.ord += worked(p,k); st.ot += otDay(p,k);
-    st.f += ferF(p,k); st.par += ferP(p,k); st.mal += malH(p,k); st.cig += cigH(p,k);
+    st.f += ferF(p,k); st.par += ferP(p,k); st.mal += malH(p,k); st.cig += cigH(p,k); st.vis += visH(p,k); st.men += menH(p,k);
   }
   return st;
 }
 function addStats(a, b){
-  const o = {gg:a.gg+b.gg, ord:a.ord+b.ord, ot:a.ot+b.ot, f:a.f+b.f, par:a.par+b.par, mal:a.mal+b.mal, cig:a.cig+b.cig, sh:{}};
+  const o = {gg:a.gg+b.gg, ord:a.ord+b.ord, ot:a.ot+b.ot, f:a.f+b.f, par:a.par+b.par, mal:a.mal+b.mal, cig:a.cig+b.cig, vis:a.vis+b.vis, men:a.men+b.men, sh:{}};
   for(const [k] of RSH) o.sh[k] = a.sh[k] + b.sh[k];
   return o;
 }
@@ -1599,10 +1608,10 @@ function periodsOf(keys){
   if(rep.group==="week") out.forEach(o => { o.label = `W${isoWeek(o.keys[0])} <small>${shortDate(o.keys[0])} – ${shortDate(o.keys[o.keys.length-1])}</small>`; });
   return out;
 }
-const HEAD = `<tr><th class="l"></th><th>Giorni</th><th class="c-pres">Ore ordinarie</th><th class="c-stra">Straord.</th><th>Totale ore</th><th class="c-ferie">Ferie</th><th class="c-par">PAR</th><th class="c-mal">Malattia</th><th class="c-cigo">CIGO</th>${RSH.map(([k,l]) => `<th class="sh"><span class="swd" style="--sw:var(${SHIFTS[k].color})"></span>${l}</th>`).join("")}</tr>`;
+const HEAD = `<tr><th class="l"></th><th>Giorni</th><th class="c-pres">Ore ordinarie</th><th class="c-stra">Straord.</th><th>Totale ore</th><th class="c-ferie">Ferie</th><th class="c-par">PAR</th><th class="c-mal">Malattia</th><th class="c-cigo">CIGO</th><th class="c-vis">Visita med.</th><th class="c-men">Mensa</th>${RSH.map(([k,l]) => `<th class="sh"><span class="swd" style="--sw:var(${SHIFTS[k].color})"></span>${l}</th>`).join("")}</tr>`;
 function rowHTML(label, st, cls = ""){
   const z = n => n ? fmt(n) : `<span class="zero">–</span>`;
-  return `<tr class="${cls}"><th class="l">${label}</th><td>${z(st.gg)}</td><td class="c-pres">${z(st.ord)}</td><td class="c-stra">${z(st.ot)}</td><td class="tot">${z(st.ord+st.ot)}</td><td class="c-ferie">${z(st.f)}</td><td class="c-par">${z(st.par)}</td><td class="c-mal">${z(st.mal)}</td><td class="c-cigo">${z(st.cig)}</td>${RSH.map(([k]) => `<td class="sh">${z(st.sh[k])}</td>`).join("")}</tr>`;
+  return `<tr class="${cls}"><th class="l">${label}</th><td>${z(st.gg)}</td><td class="c-pres">${z(st.ord)}</td><td class="c-stra">${z(st.ot)}</td><td class="tot">${z(st.ord+st.ot)}</td><td class="c-ferie">${z(st.f)}</td><td class="c-par">${z(st.par)}</td><td class="c-mal">${z(st.mal)}</td><td class="c-cigo">${z(st.cig)}</td><td class="c-vis">${z(st.vis)}</td><td class="c-men">${z(st.men)}</td>${RSH.map(([k]) => `<td class="sh">${z(st.sh[k])}</td>`).join("")}</tr>`;
 }
 function renderReport(){
   const keys = keysBetween(rep.from, rep.to);
@@ -1642,7 +1651,7 @@ function renderReport(){
 }
 function backupHTML(){
   return `<div class="rp-data"><span><b>Dati dell'app</b><small>Salva una copia di tutti i dati o ricaricala, ad esempio per passare a un altro computer o all'app installata.</small></span>
-    <span class="rp-dact"><button class="btn-o" id="bkSave">Salva backup</button><button class="btn-o" id="bkLoad">Carica backup</button><input type="file" id="bkFile" accept="application/json,.json" hidden></span></div>`;
+    <span class="rp-dact"><button class="btn-o" id="bkSave">Salva backup</button><button class="btn-o" id="bkLoad">Carica backup</button><button class="btn-o" id="logoutBtn" title="Esci (servirà di nuovo email e password)">Esci</button><input type="file" id="bkFile" accept="application/json,.json" hidden></span></div>`;
 }
 $("report").addEventListener("click", e => {
   const b = e.target.closest("button"); if(!b) return;
@@ -1651,6 +1660,7 @@ $("report").addEventListener("click", e => {
   if(b.dataset.who){ rep.who = b.dataset.who; return renderReport(); }
   if(b.id==="bkSave") return saveBackup();
   if(b.id==="bkLoad") return $("bkFile").click();
+  if(b.id==="logoutBtn") return window.cloudLogout && window.cloudLogout();
 });
 $("report").addEventListener("change", e => {
   if(e.target.id==="rpFrom"){ rep.from = e.target.value; rep.preset = null; renderReport(); }
@@ -1851,7 +1861,7 @@ function lockMsg(t){ $("lockErr").textContent = t; $("lockErr").hidden = !t; }
     }
     $("lockGo").disabled = false;
   });
-  $("logoutBtn").onclick = () => { if(timer){ clearTimeout(timer); push(); } A.signOut(auth); };
+  window.cloudLogout = () => { if(timer){ clearTimeout(timer); push(); } A.signOut(auth); };
 })();
 </script>
 </body>
