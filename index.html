@@ -387,6 +387,19 @@ body:not(.locked) .lock{display:none}
   </form>
 </dialog>
 
+<dialog id="holDlg">
+  <form method="dialog" id="holForm">
+    <h2>Festività aziendale</h2>
+    <p id="holSub"></p>
+    <label for="holName" style="position:absolute;left:-9999px">Nome della festività</label>
+    <input id="holName" type="text" maxlength="40" placeholder="Es. Chiusura aziendale">
+    <div class="dlg-actions">
+      <button type="button" class="btn ghost" id="holClear">Togli</button>
+      <button type="button" class="btn" id="holCancel">Annulla</button>
+      <button type="submit" class="btn primary">Salva</button>
+    </div>
+  </form>
+</dialog>
 <dialog id="rest">
   <h2 id="restTitle"></h2>
   <p id="restSub"></p>
@@ -586,6 +599,8 @@ function holidays(y){
   const e = easter(y), p = new Date(e); p.setDate(e.getDate()+1);
   h[iso(e.getFullYear(),e.getMonth(),e.getDate())] = "Pasqua";
   h[iso(p.getFullYear(),p.getMonth(),p.getDate())] = "Pasquetta";
+  /* festività aziendali inserite a mano (valgono per tutto il reparto) */
+  for(const [k,n] of Object.entries(data.festivita || {})) if(k.startsWith(y+"-") && typeof n==="string" && n) h[k] ??= n;
   return h;
 }
 function daysOf(y,m){
@@ -882,6 +897,29 @@ function weekTurn(p){
   for(let i=0;i<5;i++){ const d = new Date(t.getFullYear(), t.getMonth(), t.getDate()-dow+i); const v = turnOf(p, iso(d.getFullYear(), d.getMonth(), d.getDate())); if(v) return v; }
   return planned(p, iso(t.getFullYear(), t.getMonth(), t.getDate()-dow)) || null;
 }
+/* festività aziendale: pulsante nella barra del giorno (le festività nazionali non si toccano) */
+const companyHol = k => { const n = (data.festivita || {})[k]; return typeof n==="string" && n ? n : ""; };
+function holBtn(k){
+  const nat = holidays(Number(k.slice(0,4)))[k] && !companyHol(k);
+  if(nat) return "";
+  return `<button class="act" data-a="hol" style="--ac:var(--weekend)">${companyHol(k) ? "Modifica festività" : "Festività"}</button>`;
+}
+function openHol(k){
+  holKey = k;
+  const [yy,mm,dd] = k.split("-").map(Number);
+  $("holSub").textContent = `${dd} ${MONTHS[mm-1]} ${yy}. Vale per tutto il reparto: il giorno diventa festivo e la rotazione lo salta.`;
+  $("holName").value = companyHol(k) || "Festività aziendale";
+  $("holClear").style.visibility = companyHol(k) ? "visible" : "hidden";
+  $("holDlg").showModal(); $("holName").select();
+}
+let holKey = null;
+$("holForm").addEventListener("submit", () => {
+  const k = holKey, n = $("holName").value.trim() || "Festività aziendale";
+  commit(() => { data.festivita ??= {}; data.festivita[k] = n; });
+});
+$("holClear").onclick = () => { const k = holKey; $("holDlg").close(); commit(() => { if(data.festivita) delete data.festivita[k]; }); };
+$("holCancel").onclick = () => $("holDlg").close();
+
 function renderDetail(){
   const el = $("detail"), s = state.sel;
   if(!s){ el.innerHTML = `<span class="dnum empty">–</span><span class="dtxt"><b>Seleziona un giorno</b><small>Clicca una casella per vedere il dettaglio e inserire malattia, ferie, PAR, CIGO o straordinario.</small></span>`; return; }
@@ -894,6 +932,7 @@ function renderDetail(){
       <span class="dtxt"><b>${esc(p)}, ${WDN[dow]} ${dd} ${MONTHS[mm-1].toLowerCase()}</b><small>${txt.join(", ")}</small></span>
       <span class="dact">
         ${man ? `<button class="act" data-a="reset">Ripristina rotazione</button>` : ""}
+        ${holBtn(k)}
         ${v ? `<button class="act" data-a="copyday" style="--ac:var(--c-pres)">Copia nelle presenze</button>` : ""}
       </span>`;
     return;
@@ -911,12 +950,13 @@ function renderDetail(){
     <span class="dtxt"><b>${esc(p)}, ${WDN[dow]} ${dd} ${MONTHS[mm-1].toLowerCase()}${hol?` (${hol})`:""}</b><small>${parts.join(", ")}</small></span>
     <span class="dact">
       <button class="act" data-a="time">Orario manuale</button>
+      ${holBtn(k)}
       <button class="act" data-a="malattia" style="--ac:var(--c-mal)">Malattia</button>
       <button class="act" data-a="ferie" style="--ac:var(--c-ferie)">Ferie / PAR</button>
       <button class="act" data-a="visita" style="--ac:var(--c-vis)">Visita medica</button>
       <button class="act" data-a="mensa" style="--ac:var(--c-men)">Pausa mensa</button>
       <button class="act" data-a="cigo" style="--ac:var(--c-cigo)">CIGO</button>
-      <button class="act" data-a="straordinario" style="--ac:var(--c-stra)">+ Straordinario</button>
+      <button class="act" data-a="straordinario" style="--ac:var(--c-stra)">Straordinario</button>
       <button class="act clear" data-a="clear" aria-label="Svuota il giorno">Svuota</button>
     </span>`;
 }
@@ -1098,6 +1138,7 @@ $("detail").addEventListener("click", e => {
   if(a==="reset") return commit(() => { delete bucket("turnazione",p)[k]; });
   if(a==="copyday") return commit(() => { bucket("presenze",p)[k] = TO_PRES[turnOf(p,k)]; });
   if(a==="time") return openTime(k);
+  if(a==="hol") return openHol(k);
   if(a==="clear") return commit(() => { for(const c of ["presenze","straordinario","ferie","malattia","cigo","visita","mensa"]) delete bucket(c,p)[k]; });
   openHours(k, a);
 });
