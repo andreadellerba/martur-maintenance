@@ -199,7 +199,9 @@ dialog textarea{width:100%;font:inherit;font-size:15px;padding:8px 10px;border:1
 .restbtns [data-c="visita"]{border-color:var(--c-vis);color:var(--c-vis)}
 .restbtns [data-c="mensa"]{border-color:var(--c-men);color:var(--c-men)}
 .restbtns .btn[disabled]{opacity:.3;cursor:default}
-#yearBtn{font-size:13px}
+#yearBtn,#cigBtn{font-size:13px}
+#cigRow{margin-top:10px}
+#cigBtn[aria-pressed="true"]{background:var(--c-cigo);border-color:var(--c-cigo);color:var(--on-accent)}
 
 /* password */
 body.locked>*:not(.lock){display:none!important}
@@ -378,6 +380,7 @@ body:not(.locked) .lock{display:none}
       <input id="hours" type="number" min="0" max="24" step="0.25" inputmode="decimal" placeholder="Ore, es. 2,5">
       <label for="ferNote" class="notelab" id="ferNoteLab">Commento <small>(si vede passando il mouse sulla casella)</small></label>
       <textarea id="ferNote" rows="2" maxlength="300" placeholder="Es. matrimonio, visita figlio…"></textarea>
+      <div class="seg" id="cigRow"><button type="button" id="cigBtn" aria-pressed="false" title="In presenze restano ferie/PAR, nel report contano come CIGO">Contalo come CIGO</button></div>
     </div>
     <div id="timeMode">
       <div class="trow">
@@ -532,7 +535,8 @@ function absAP(a,p,k){ return (a.key==="f" && ferA(p,k)) || (a.key==="p" && parA
 function absShort(a,p,k){ return a.short + (absAP(a,p,k) ? " AP" : ""); }
 function absName(a,p,k){
   const n = a.key==="p" || a.key==="cigo" ? a.label : a.label.toLowerCase();
-  return (a.key==="f" && ferA(p,k)) || (a.key==="p" && parA(p,k)) ? n + " AP" : n;
+  const e = get("ferie",p,k) || {}, cg = (a.key==="f" && e.fc) || (a.key==="p" && e.pc) ? " (CIGO nel report)" : "";
+  return ((a.key==="f" && ferA(p,k)) || (a.key==="p" && parA(p,k)) ? n + " AP" : n) + cg;
 }
 function absList(p,k){ return ABS.map(a => ({...a, hours:a.h(p,k)})).filter(a => a.hours>0).sort((a,b)=>b.hours-a.hours); }
 
@@ -747,6 +751,7 @@ function renderPalette(){
 function cellHTML(p, x, hol, big){
   const k = x.key, we = x.dow>4 || !!hol[k], sel = state.sel && state.sel.p===p && state.sel.k===k;
   const cls = ["cell"]; if(we) cls.push("we"); if(sel) cls.push("sel");
+  if(state.msel && state.msel.set.has(p+"|"+k)) cls.push("rng");
   let style = "", inner = "", aria = `${p}, ${x.d} ${MONTHS[state.m]}`;
   const cat = state.cat;
   if(cat==="turnazione"){
@@ -929,7 +934,27 @@ $("holCancel").onclick = () => $("holDlg").close();
 
 function renderDetail(){
   const el = $("detail"), s = state.sel;
-  if(!s){ el.innerHTML = `<span class="dnum empty">–</span><span class="dtxt"><b>Seleziona un giorno</b><small>Clicca una casella per vedere il dettaglio e inserire malattia, ferie, PAR, CIGO o straordinario.</small></span>`; return; }
+  if(state.msel){
+    const pairs = state.msel.pairs, ps = [...new Set(pairs.map(x => x.p))], ks = [...new Set(pairs.map(x => x.k))].sort();
+    const d = k => { const [yy,mm,dd] = k.split("-").map(Number); return `${dd} ${MONTHS[mm-1].toLowerCase()}`; };
+    const who = ps.length===1 ? esc(ps[0]) : `${ps.length} persone`;
+    const acts = state.cat==="turnazione"
+      ? `<button class="act" data-a="reset">Ripristina rotazione</button>
+         <button class="act" data-a="copyday" style="--ac:var(--c-pres)">Copia nelle presenze</button>`
+      : `<button class="act" data-a="time">Orario manuale</button>
+         <button class="act" data-a="malattia" style="--ac:var(--c-mal)">Malattia</button>
+         <button class="act" data-a="ferie" style="--ac:var(--c-ferie)">Ferie / PAR</button>
+         <button class="act" data-a="visita" style="--ac:var(--c-vis)">Visita medica</button>
+         <button class="act" data-a="mensa" style="--ac:var(--c-men)">Pausa mensa</button>
+         <button class="act" data-a="cigo" style="--ac:var(--c-cigo)">CIGO</button>
+         <button class="act" data-a="straordinario" style="--ac:var(--c-stra)">Straordinario</button>
+         <button class="act clear" data-a="clear" aria-label="Svuota i giorni selezionati">Svuota</button>`;
+    el.innerHTML = `<span class="dnum" style="--ac:var(--accent)">${pairs.length}</span>
+      <span class="dtxt"><b>${who}, ${ks.length} ${ks.length===1 ? "giorno" : "giorni"} (dal ${d(ks[0])} al ${d(ks[ks.length-1])})</b><small>Quello che scegli vale per tutte le caselle selezionate (ferie, malattia e simili solo nei giorni lavorativi). Clicca una casella per togliere la selezione.</small></span>
+      <span class="dact">${acts}<button class="act" data-a="unsel">Annulla selezione</button></span>`;
+    return;
+  }
+  if(!s){ el.innerHTML = `<span class="dnum empty">–</span><span class="dtxt"><b>Seleziona un giorno</b><small>Clicca una casella per vedere il dettaglio e inserire malattia, ferie, PAR, CIGO o straordinario. Trascinando col mouse selezioni più giorni e più persone insieme.</small></span>`; return; }
   const {p, k} = s, [yy,mm,dd] = k.split("-").map(Number), dow = (new Date(yy,mm-1,dd).getDay()+6)%7;
   if(state.cat==="turnazione"){
     const v = turnOf(p,k), pl = planned(p,k), man = get("turnazione",p,k)!==undefined;
@@ -1042,8 +1067,8 @@ function showTip(){
   const e = get("ferie", tipCell.dataset.p, tipCell.dataset.date);
   if(!e || !e.n) return;
   const parts = [];
-  if(e.f) parts.push(`Ferie${e.a==="AP" ? " AP" : ""} ${fmt(e.f)} h`);
-  if(e.p) parts.push(`PAR${e.pa==="AP" ? " AP" : ""} ${fmt(e.p)} h`);
+  if(e.f) parts.push(`Ferie${e.a==="AP" ? " AP" : ""} ${fmt(e.f)} h${e.fc ? " (CIGO)" : ""}`);
+  if(e.p) parts.push(`PAR${e.pa==="AP" ? " AP" : ""} ${fmt(e.p)} h${e.pc ? " (CIGO)" : ""}`);
   tipEl.innerHTML = `<b>${esc(parts.join(" · "))}</b>${esc(e.n)}`;
   tipEl.hidden = false;
   const r = tipEl.getBoundingClientRect();
@@ -1081,55 +1106,66 @@ $("matrix").addEventListener("pointerover", e => {
 });
 window.addEventListener("pointerup", () => { setTimeout(() => { painting = null; }, 0); endRange(); });
 
-/* selezione di più giorni: straordinario, ferie/PAR, malattia, CIGO */
+/* selezione di più caselle trascinando col mouse: più giorni (orizzontale) e più persone (verticale) */
 let rng = null, skipClick = false;
-function rangeKeys(q){
+function rectPairs(q){
   if(!q) return [];
-  const [a,b] = [q.a, q.b].sort(), out = [];
-  for(const x of daysOf(state.y,state.m)) if(x.key>=a && x.key<=b && (state.cat==="straordinario" || isWorkday(x.key))) out.push(x.key);
+  const [a,b] = [q.a, q.b].sort();
+  const i = [PEOPLE.indexOf(q.p0), PEOPLE.indexOf(q.p1)].sort((x,y) => x-y), out = [];
+  for(const p of PEOPLE.slice(i[0], i[1]+1)) for(const x of daysOf(state.y,state.m)) if(x.key>=a && x.key<=b) out.push({p, k:x.key});
   return out;
 }
+const pairSet = pairs => new Set(pairs.map(x => x.p+"|"+x.k));
 function paintRange(){
-  const ks = new Set(rangeKeys(rng));
-  document.querySelectorAll(".cell").forEach(c => c.classList.toggle("rng", !!rng && c.dataset.p===rng.p && ks.has(c.dataset.date)));
+  const s = rng ? pairSet(rectPairs(rng)) : state.msel ? state.msel.set : new Set();
+  document.querySelectorAll(".cell[data-date]").forEach(c => c.classList.toggle("rng", s.has(c.dataset.p+"|"+c.dataset.date)));
 }
 $("matrix").addEventListener("pointerdown", e => {
-  if(!HOURCATS.includes(state.cat) || e.button!==0 || e.pointerType!=="mouse") return;
-  const c = e.target.closest(".cell"); if(!c) return;
+  if(e.pointerType!=="mouse" || e.button!==0) return;
+  if(["presenze","turnazione"].includes(state.cat) && state.brush) return;   /* con un turno scelto si dipinge */
+  const c = e.target.closest(".cell[data-date]"); if(!c) return;
   e.preventDefault();
-  rng = {p:c.dataset.p, a:c.dataset.date, b:c.dataset.date, moved:false};
-  paintRange();
+  rng = {p0:c.dataset.p, p1:c.dataset.p, a:c.dataset.date, b:c.dataset.date, moved:false};
 });
 $("matrix").addEventListener("pointerover", e => {
   if(!rng) return;
-  const c = e.target.closest(".cell"); if(!c || c.dataset.p!==rng.p || c.dataset.date===rng.b) return;
-  rng.b = c.dataset.date; rng.moved = true; paintRange();
+  const c = e.target.closest(".cell[data-date]"); if(!c || (c.dataset.p===rng.p1 && c.dataset.date===rng.b)) return;
+  rng.p1 = c.dataset.p; rng.b = c.dataset.date; rng.moved = true; paintRange();
 });
 function endRange(){
   if(!rng) return;
   const q = rng; rng = null;
   if(!q.moved){ paintRange(); return; }
-  const keys = rangeKeys(q);
+  const pairs = rectPairs(q);
   skipClick = true; setTimeout(() => { skipClick = false; }, 0);
-  state.person = q.p; state.sel = {p:q.p, k:q.b};
+  state.sel = null; state.msel = null;
+  if(HOURCATS.includes(state.cat)){
+    const list = pairs.filter(x => state.cat==="straordinario" || isWorkday(x.k));
+    render();
+    if(list.length===1){ selectCell(list[0].p, list[0].k); render(); openHours(list[0].k); }
+    else if(list.length>1) openHoursMulti(list);
+    return;
+  }
+  if(pairs.length===1) selectCell(pairs[0].p, pairs[0].k);
+  else state.msel = {pairs, set:pairSet(pairs)};
   render();
-  if(keys.length===1) openHours(keys[0]);
-  else if(keys.length>1) openHoursMulti(keys);
 }
 
 $("matrix").addEventListener("click", e => {
   const n = e.target.closest(".pname");
   if(n){ state.person = n.dataset.p; render(); return; }
-  const c = e.target.closest(".cell"); if(!c) return;
-  const p = c.dataset.p, k = c.dataset.date;
+  const c = e.target.closest(".cell"); if(!c || skipClick) return;
+  const p = c.dataset.p, k = c.dataset.date, same = state.sel && state.sel.p===p && state.sel.k===k;
   if(state.cat==="presenze" || state.cat==="turnazione"){
     if(painting && painting.done) return;            /* già dipinto dal pointerdown */
-    selectCell(p, k);
-    if(state.brush==="M"){ render(); openTime(k); return; }
-    if(state.brush && e.detail===0){ startPaint(p, k); return; }  /* tastiera */
-    render(); return;
+    if(state.brush==="M"){ selectCell(p, k); render(); openTime(k); return; }
+    if(state.brush && e.detail===0){ selectCell(p, k); startPaint(p, k); return; }  /* tastiera */
+    state.msel = null;
+    if(same && !state.brush){ state.sel = null; render(); return; }   /* secondo clic: deseleziona */
+    selectCell(p, k); render(); return;
   }
-  if(skipClick) return;
+  state.msel = null;
+  if(same){ state.sel = null; render(); return; }
   selectCell(p, k); render(); openHours(k);
 });
 
@@ -1169,16 +1205,29 @@ $("matrix").addEventListener("drop", e => {
   commit(() => setShift(p, key, s==="X" ? null : s));
 });
 
-/* barra del giorno selezionato */
+/* barra del giorno selezionato (o delle caselle selezionate) */
+const ALLCATS = ["presenze","straordinario","ferie","malattia","cigo","visita","mensa"];
 $("detail").addEventListener("click", e => {
-  const b = e.target.closest(".act"); if(!b || !state.sel) return;
-  const {p, k} = state.sel; state.person = p;
+  const b = e.target.closest(".act"); if(!b) return;
   const a = b.dataset.a;
+  if(state.msel){
+    const pairs = state.msel.pairs, work = pairs.filter(x => isWorkday(x.k));
+    if(a==="unsel"){ state.msel = null; render(); return; }
+    if(a==="reset") return commit(() => { pairs.forEach(({p,k}) => { delete bucket("turnazione",p)[k]; }); state.msel = null; });
+    if(a==="copyday") return commit(() => { pairs.forEach(({p,k}) => { const t = turnOf(p,k); if(t) bucket("presenze",p)[k] = TO_PRES[t]; }); state.msel = null; });
+    if(a==="clear") return commit(() => { pairs.forEach(({p,k}) => { for(const c of ALLCATS) delete bucket(c,p)[k]; }); state.msel = null; });
+    const list = a==="straordinario" ? pairs : work;
+    if(!list.length){ alertMsg("Nella selezione non ci sono giorni lavorativi."); return; }
+    if(a==="time") return openTimeMulti(list);
+    return openHoursMulti(list, a);
+  }
+  if(!state.sel) return;
+  const {p, k} = state.sel; state.person = p;
   if(a==="reset") return commit(() => { delete bucket("turnazione",p)[k]; });
   if(a==="copyday") return commit(() => { bucket("presenze",p)[k] = TO_PRES[turnOf(p,k)]; });
   if(a==="time") return openTime(k);
   if(a==="hol") return openHol(k);
-  if(a==="clear") return commit(() => { for(const c of ["presenze","straordinario","ferie","malattia","cigo","visita","mensa"]) delete bucket(c,p)[k]; });
+  if(a==="clear") return commit(() => { for(const c of ALLCATS) delete bucket(c,p)[k]; });
   openHours(k, a);
 });
 
@@ -1188,12 +1237,12 @@ document.addEventListener("keydown", e => {
   if((e.ctrlKey||e.metaKey) && !e.shiftKey && e.key.toLowerCase()==="z"){ e.preventDefault(); undo(); return; }
   if(!["presenze","turnazione"].includes(state.cat) || e.ctrlKey || e.metaKey || e.altKey) return;
   if(e.target.closest && e.target.closest("input,textarea")) return;
-  if(e.key==="Escape"){ state.brush = null; render(); return; }
+  if(e.key==="Escape"){ state.brush = null; state.msel = null; render(); return; }
   const map = state.cat==="turnazione" ? {"1":"1","2":"2","3":"C","0":"X"} : {"1":"1","2":"2","3":"C","4":"1L","5":"2L","6":"M","0":"X"};
   if(map[e.key]){ state.brush = map[e.key]; render(); }
 });
 
-let editing = null, dlgMode = null, ferieType = "f", ferieYear = null;
+let editing = null, dlgMode = null, ferieType = "f", ferieYear = null, ferieCig = false;
 
 function dateLabel(key){
   const [yy,mm,dd] = key.split("-");
@@ -1213,18 +1262,35 @@ function setChips(key){
   $("chips").innerHTML = html;
 }
 let multiKeys = null;
-function openHoursMulti(keys){
-  openHours(keys[0]);
-  multiKeys = keys;
+/* popup per più caselle: pairs = [{p,k}], anche di persone diverse */
+function multiSub(pairs, what){
+  const ps = [...new Set(pairs.map(x => x.p))], ks = [...new Set(pairs.map(x => x.k))].sort();
   const d = k => { const [yy,mm,dd] = k.split("-").map(Number); return `${dd} ${MONTHS[mm-1].toLowerCase()}`; };
-  $("dlgSub").textContent = `${state.person}: ${keys.length} giorni, dal ${d(keys[0])} al ${d(keys[keys.length-1])}. Le ore scelte valgono per ogni giorno.`;
+  const who = ps.length===1 ? ps[0] : `${ps.length} persone`;
+  return `${who}: ${ks.length} ${ks.length===1 ? "giorno" : "giorni"}, dal ${d(ks[0])} al ${d(ks[ks.length-1])}. ${what} per ogni giorno${ps.length>1 ? " e ogni persona" : ""}.`;
+}
+function openHoursMulti(pairs, cat = state.cat){
+  if(typeof pairs[0]==="string") pairs = pairs.map(k => ({p:state.person, k}));
+  state.person = pairs[0].p;
+  openHours(pairs[0].k, cat);
+  multiKeys = pairs;
+  $("dlgSub").textContent = multiSub(pairs, "Le ore scelte valgono");
   $("hours").value = "";
   setChips(null);
   $("dlgClear").textContent = "Rimuovi da tutti";
-  $("dlgClear").style.visibility = keys.some(k => hoursOf(dlgMode,state.person,k) > (dlgMode==="straordinario" ? otAuto(state.person,k) : 0)) ? "visible" : "hidden";
+  $("dlgClear").style.visibility = pairs.some(({p,k}) => hoursOf(cat,p,k) > (cat==="straordinario" ? otAuto(p,k) : 0)) ? "visible" : "hidden";
+}
+let multiTime = null;
+function openTimeMulti(pairs){
+  state.person = pairs[0].p;
+  openTime(pairs[0].k);
+  multiTime = pairs;
+  $("dlgSub").textContent = multiSub(pairs, "L'orario vale");
+  $("dlgClear").textContent = "Rimuovi da tutti";
+  $("dlgClear").style.visibility = pairs.some(({p,k}) => get("presenze",p,k)!==undefined) ? "visible" : "hidden";
 }
 function openHours(key, cat = state.cat){
-  multiKeys = null; $("dlgClear").textContent = "Rimuovi";
+  multiKeys = null; multiTime = null; $("dlgClear").textContent = "Rimuovi";
   editing = key; dlgMode = cat;
   $("hoursMode").hidden = false; $("timeMode").hidden = true;
   $("seg").hidden = cat!=="ferie";
@@ -1248,7 +1314,7 @@ function openHours(key, cat = state.cat){
   $("dlg").showModal(); $("hours").focus();
 }
 function openTime(key){
-  editing = key; dlgMode = "time";
+  editing = key; dlgMode = "time"; multiTime = null; $("dlgClear").textContent = "Rimuovi";
   const cur = get("presenze", state.person, key);
   const t = cur && sid(cur)==="M" ? cur : lastTimes;
   $("hoursMode").hidden = true; $("timeMode").hidden = false;
@@ -1271,16 +1337,20 @@ function setType(t){
   $("seg").querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x.dataset.t===t));
   if(editing && dlgMode==="ferie" && !multiKeys){ const h = curHours("ferie",editing); $("hours").value = h || ""; setChips(editing); }
   if(editing && dlgMode==="ferie") setYear((t==="p" ? parA : ferA)(state.person,editing));
+  if(editing && dlgMode==="ferie") setCig(!!get("ferie",state.person,editing)?.[t==="p" ? "pc" : "fc"]);
   showYear();
 }
 $("seg").addEventListener("click", e => { const x = e.target.closest("button"); if(x) setType(x.dataset.t); });
 /* ferie e PAR: "Anno precedente" acceso = "AP", spento = anno corrente */
-function showYear(){ $("yearBtn").hidden = $("ferNote").hidden = $("ferNoteLab").hidden = dlgMode!=="ferie"; }
+function showYear(){ $("yearBtn").hidden = $("ferNote").hidden = $("ferNoteLab").hidden = $("cigRow").hidden = dlgMode!=="ferie"; }
+/* "Contalo come CIGO": in presenze restano ferie/PAR, nel report vanno nella colonna CIGO */
+function setCig(v){ ferieCig = !!v; $("cigBtn").setAttribute("aria-pressed", ferieCig); }
+$("cigBtn").onclick = () => setCig(!ferieCig);
 function setYear(y){ ferieYear = y || ""; $("yearBtn").setAttribute("aria-pressed", ferieYear==="AP"); }
 $("yearBtn").onclick = () => setYear(ferieYear==="AP" ? "" : "AP");
 
 /* scrive le ore di una categoria (per ferie: il tipo scelto; year "AP"/"" o undefined = lascia com'è) */
-function writeHours(cat, key, v, type, year, note){
+function writeHours(cat, key, v, type, year, note, cig){
   const b = bucket(cat, state.person);
   if(cat==="ferie"){
     const old = get("ferie",state.person,key) || {};
@@ -1291,6 +1361,9 @@ function writeHours(cat, key, v, type, year, note){
     if(o.p && yp==="AP") o.pa = "AP";
     const n = note!==undefined ? note.trim() : (old.n || "");
     if(n) o.n = n;
+    const cf = type==="f" && cig!==undefined ? cig : old.fc, cp = type==="p" && cig!==undefined ? cig : old.pc;
+    if(o.f && cf) o.fc = true;
+    if(o.p && cp) o.pc = true;
     if(o.f+o.p>0) b[key] = o; else delete b[key];
     return;
   }
@@ -1298,8 +1371,12 @@ function writeHours(cat, key, v, type, year, note){
 }
 function saveHours(v){
   const key = editing, cat = dlgMode;
-  if(multiKeys){ const ks = multiKeys; multiKeys = null; commit(() => ks.forEach(k => writeHours(cat, k, v, ferieType, ferieYear, cat==="ferie" ? $("ferNote").value : undefined))); return; }
-  commit(() => writeHours(cat, key, v, ferieType, ferieYear, cat==="ferie" ? $("ferNote").value : undefined));
+  if(multiKeys){
+    const ks = multiKeys, note = cat==="ferie" ? $("ferNote").value : undefined, cig = cat==="ferie" ? ferieCig : undefined; multiKeys = null;
+    commit(() => { ks.forEach(({p,k}) => { state.person = p; writeHours(cat, k, v, ferieType, ferieYear, note, cig); }); state.msel = null; });
+    return;
+  }
+  commit(() => writeHours(cat, key, v, ferieType, ferieYear, cat==="ferie" ? $("ferNote").value : undefined, cat==="ferie" ? ferieCig : undefined));
   if(cat!=="straordinario") askRest(key);
 }
 $("chips").addEventListener("click", e => {
@@ -1312,6 +1389,7 @@ $("dlgForm").addEventListener("submit", e => {
     if(!s || !e) return;
     lastTimes = {s, e};
     const key = editing;
+    if(multiTime){ const ps = multiTime; multiTime = null; commit(() => { ps.forEach(({p,k}) => { bucket("presenze",p)[k] = {t:"M", s, e}; }); state.msel = null; }); return; }
     commit(() => { bucket("presenze", state.person)[key] = {t:"M", s, e}; });
     askRest(key);
     return;
@@ -1320,7 +1398,8 @@ $("dlgForm").addEventListener("submit", e => {
 });
 $("dlgClear").onclick = () => {
   const key = editing;
-  if(multiKeys){ const ks = multiKeys; multiKeys = null; commit(() => ks.forEach(k => { delete bucket(dlgMode, state.person)[k]; })); $("dlg").close(); return; }
+  if(multiKeys){ const ks = multiKeys; multiKeys = null; commit(() => { ks.forEach(({p,k}) => { delete bucket(dlgMode, p)[k]; }); state.msel = null; }); $("dlg").close(); return; }
+  if(multiTime){ const ps = multiTime; multiTime = null; commit(() => { ps.forEach(({p,k}) => { delete bucket("presenze", p)[k]; }); state.msel = null; }); $("dlg").close(); return; }
   if(dlgMode==="time") commit(() => { delete bucket("presenze", state.person)[key]; });
   else if(dlgMode==="ferie") commit(() => { delete bucket("ferie", state.person)[key]; });
   else commit(() => { delete bucket(dlgMode, state.person)[key]; });
@@ -1680,7 +1759,8 @@ function statsRange(p, keys){
     const v = get("presenze",p,k);
     if(v!==undefined && !(isWorkday(k) && absH(p,k) >= DAY_H)){ st.gg++; const id = sid(v); if(id in st.sh) st.sh[id]++; }
     st.ord += worked(p,k); st.ot += otDay(p,k);
-    st.f += ferF(p,k); st.par += ferP(p,k); st.mal += malH(p,k); st.cig += cigH(p,k); st.vis += visH(p,k); st.men += menH(p,k);
+    const fe = get("ferie",p,k) || {}, fcig = fe.fc ? ferF(p,k) : 0, pcig = fe.pc ? ferP(p,k) : 0;   /* ferie/PAR "contate come CIGO" */
+    st.f += ferF(p,k) - fcig; st.par += ferP(p,k) - pcig; st.mal += malH(p,k); st.cig += cigH(p,k) + fcig + pcig; st.vis += visH(p,k); st.men += menH(p,k);
   }
   return st;
 }
