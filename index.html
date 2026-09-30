@@ -168,6 +168,11 @@ dialog h2{font-family:var(--display);font-size:30px;font-weight:700;margin:0 0 4
 dialog p{margin:0 0 14px;color:var(--muted);font-size:14px}
 dialog input{width:100%;font:inherit;font-size:22px;padding:10px 12px;border:1px solid var(--line-2);border-radius:8px;background:var(--surface-2);color:var(--text)}
 .dlg-actions{display:flex;gap:8px;margin-top:16px;justify-content:flex-end}
+.notelab{display:block;margin:12px 0 4px;font-size:13px;font-weight:600;color:var(--muted-2)}
+.notelab small{font-weight:500;color:var(--muted)}
+dialog textarea{width:100%;font:inherit;font-size:15px;padding:8px 10px;border:1px solid var(--line-2);border-radius:8px;background:var(--surface-2);color:var(--text);resize:vertical}
+.tip{position:fixed;z-index:60;max-width:260px;padding:8px 10px;border-radius:8px;background:var(--text);color:var(--bg);font-size:13px;line-height:1.35;box-shadow:0 8px 24px rgba(0,0,0,.35);pointer-events:none;white-space:pre-wrap}
+.tip b{display:block;font-size:11px;opacity:.7;margin-bottom:2px}
 .btn{border:1px solid var(--line-2);background:var(--surface-2);border-radius:8px;padding:9px 14px;cursor:pointer;font-weight:600}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
 .btn.ghost{margin-right:auto;background:none;color:var(--weekend);border-color:transparent}
@@ -371,6 +376,8 @@ body:not(.locked) .lock{display:none}
       <div class="chips" id="chips"></div>
       <label for="hours" style="position:absolute;left:-9999px">Ore</label>
       <input id="hours" type="number" min="0" max="24" step="0.25" inputmode="decimal" placeholder="Ore, es. 2,5">
+      <label for="ferNote" class="notelab" id="ferNoteLab">Commento <small>(si vede passando il mouse sulla casella)</small></label>
+      <textarea id="ferNote" rows="2" maxlength="300" placeholder="Es. matrimonio, visita figlio…"></textarea>
     </div>
     <div id="timeMode">
       <div class="trow">
@@ -1026,6 +1033,38 @@ function startPaint(p, key){
   pushHistory(); paint(p, key, mode); save(); render();
   return mode;
 }
+/* commento di ferie/PAR: compare fermando il mouse sulla casella, sparisce uscendo */
+const tipEl = document.createElement("div"); tipEl.className = "tip"; tipEl.hidden = true; document.body.appendChild(tipEl);
+let tipTimer = null, tipCell = null, tipXY = [0,0];
+function hideTip(){ clearTimeout(tipTimer); tipTimer = null; tipCell = null; tipEl.hidden = true; }
+function showTip(){
+  if(!tipCell) return;
+  const e = get("ferie", tipCell.dataset.p, tipCell.dataset.date);
+  if(!e || !e.n) return;
+  const parts = [];
+  if(e.f) parts.push(`Ferie${e.a==="AP" ? " AP" : ""} ${fmt(e.f)} h`);
+  if(e.p) parts.push(`PAR${e.pa==="AP" ? " AP" : ""} ${fmt(e.p)} h`);
+  tipEl.innerHTML = `<b>${esc(parts.join(" · "))}</b>${esc(e.n)}`;
+  tipEl.hidden = false;
+  const r = tipEl.getBoundingClientRect();
+  let x = tipXY[0] + 14, y = tipXY[1] + 18;
+  if(x + r.width > innerWidth - 8) x = tipXY[0] - r.width - 10;
+  if(y + r.height > innerHeight - 8) y = tipXY[1] - r.height - 12;
+  tipEl.style.left = Math.max(8, x) + "px"; tipEl.style.top = Math.max(8, y) + "px";
+}
+$("matrix").addEventListener("pointermove", e => {
+  if(e.pointerType !== "mouse") return;
+  const c = e.target.closest(".cell[data-date]");
+  if(c !== tipCell) hideTip();
+  if(!c || !get("ferie", c.dataset.p, c.dataset.date)?.n) return;
+  tipCell = c; tipXY = [e.clientX, e.clientY];
+  if(!tipEl.hidden) return;
+  clearTimeout(tipTimer); tipTimer = setTimeout(showTip, 500);   /* mouse fermo mezzo secondo */
+});
+$("matrix").addEventListener("pointerleave", hideTip);
+$("matrix").addEventListener("pointerdown", hideTip);
+addEventListener("scroll", hideTip, true);
+
 function selectCell(p, k){ state.person = p; state.sel = {p, k}; }
 $("matrix").addEventListener("pointerdown", e => {
   if(!["presenze","turnazione"].includes(state.cat) || e.button!==0 || !state.brush || state.brush==="M") return;
@@ -1196,6 +1235,7 @@ function openHours(key, cat = state.cat){
     const f = ferF(state.person,key), p = ferP(state.person,key);
     if(f && !p) ferieType = "f"; else if(p && !f) ferieType = "p";
     setType(ferieType);
+    $("ferNote").value = get("ferie",state.person,key)?.n || "";
   } else if(cat==="straordinario"){
     const a = otAuto(state.person, key);
     if(a) sub += `. Dal turno: ${fmt(a)} h (automatico), qui aggiungi solo le ore in più.`;
@@ -1235,12 +1275,12 @@ function setType(t){
 }
 $("seg").addEventListener("click", e => { const x = e.target.closest("button"); if(x) setType(x.dataset.t); });
 /* ferie e PAR: "Anno precedente" acceso = "AP", spento = anno corrente */
-function showYear(){ $("yearBtn").hidden = dlgMode!=="ferie"; }
+function showYear(){ $("yearBtn").hidden = $("ferNote").hidden = $("ferNoteLab").hidden = dlgMode!=="ferie"; }
 function setYear(y){ ferieYear = y || ""; $("yearBtn").setAttribute("aria-pressed", ferieYear==="AP"); }
 $("yearBtn").onclick = () => setYear(ferieYear==="AP" ? "" : "AP");
 
 /* scrive le ore di una categoria (per ferie: il tipo scelto; year "AP"/"" o undefined = lascia com'è) */
-function writeHours(cat, key, v, type, year){
+function writeHours(cat, key, v, type, year, note){
   const b = bucket(cat, state.person);
   if(cat==="ferie"){
     const old = get("ferie",state.person,key) || {};
@@ -1249,6 +1289,8 @@ function writeHours(cat, key, v, type, year){
     const ya = type==="f" && year!==undefined ? year : old.a, yp = type==="p" && year!==undefined ? year : old.pa;
     if(o.f && ya==="AP") o.a = "AP";
     if(o.p && yp==="AP") o.pa = "AP";
+    const n = note!==undefined ? note.trim() : (old.n || "");
+    if(n) o.n = n;
     if(o.f+o.p>0) b[key] = o; else delete b[key];
     return;
   }
@@ -1256,8 +1298,8 @@ function writeHours(cat, key, v, type, year){
 }
 function saveHours(v){
   const key = editing, cat = dlgMode;
-  if(multiKeys){ const ks = multiKeys; multiKeys = null; commit(() => ks.forEach(k => writeHours(cat, k, v, ferieType, ferieYear))); return; }
-  commit(() => writeHours(cat, key, v, ferieType, ferieYear));
+  if(multiKeys){ const ks = multiKeys; multiKeys = null; commit(() => ks.forEach(k => writeHours(cat, k, v, ferieType, ferieYear, cat==="ferie" ? $("ferNote").value : undefined))); return; }
+  commit(() => writeHours(cat, key, v, ferieType, ferieYear, cat==="ferie" ? $("ferNote").value : undefined));
   if(cat!=="straordinario") askRest(key);
 }
 $("chips").addEventListener("click", e => {
