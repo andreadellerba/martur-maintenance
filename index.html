@@ -96,6 +96,8 @@ button{font:inherit;color:inherit}
 .dh span{font-size:10px;font-weight:600;opacity:.8}
 .dh b{font-family:var(--display);font-size:17px}
 .dh.we{color:var(--weekend);background:var(--weekend-bg)}
+.dh em{font-style:normal;font-size:8px;font-weight:800;letter-spacing:.02em;padding:0 2px;margin-bottom:2px;border-radius:3px;background:var(--weekend);color:var(--bg)}
+.cell.lg .hn{position:absolute;top:7px;right:8px;max-width:calc(100% - 36px);font-family:var(--body);font-size:10px;font-weight:700;color:var(--weekend);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dh.now{color:var(--today);background:color-mix(in srgb,var(--today) 14%,transparent);box-shadow:inset 0 -3px 0 var(--today)}
 .dh.now span{opacity:1}
 .cell.now{box-shadow:inset 0 3px 0 var(--today)}
@@ -316,7 +318,7 @@ body:not(.locked) .lock{display:none}
   <div class="hdr-r">
     <button class="btn-o icon" id="themeBtn" aria-label="Tema chiaro o scuro" title="Tema chiaro o scuro"></button>
     <button class="btn-o" id="undoBtn" title="Annulla l'ultima azione (Ctrl+Z)" aria-label="Annulla l'ultima azione">↶<span class="lbl"> Annulla</span></button>
-    <button class="xls" id="pdfBtn" hidden title="Scarica la turnazione del mese in PDF orizzontale">Esporta PDF</button>
+    <button class="xls" id="pdfBtn" hidden title="Scarica la turnazione di 4 mesi (da quello mostrato) in PDF A3">Esporta PDF</button>
     <button class="xls" id="xlsBtn" title="Scarica il mese in Excel, un foglio con tutti i dipendenti">Esporta Excel</button>
   </div>
 </header>
@@ -570,6 +572,7 @@ function holidays(y){
     [`${y}-06-24`]:"San Giovanni",[`${y}-08-15`]:"Ferragosto",[`${y}-11-01`]:"Ognissanti",
     [`${y}-12-08`]:"Immacolata",[`${y}-12-25`]:"Natale",[`${y}-12-26`]:"Santo Stefano"
   };
+  if(y>=2026) h[`${y}-10-04`] = "San Francesco";   /* di nuovo festa nazionale dal 2026 */
   const e = easter(y), p = new Date(e); p.setDate(e.getDate()+1);
   h[iso(e.getFullYear(),e.getMonth(),e.getDate())] = "Pasqua";
   h[iso(p.getFullYear(),p.getMonth(),p.getDate())] = "Pasquetta";
@@ -758,7 +761,7 @@ function cellHTML(p, x, hol, big){
       }
     }
   }
-  if(big){ cls.push("lg"); inner = `<span class="dn">${x.d}</span>` + inner; }
+  if(big){ cls.push("lg"); inner = `<span class="dn">${x.d}</span>` + (hol[k] ? `<span class="hn">${hol[k]}</span>` : "") + inner; }
   return `<button class="${cls.join(" ")}" data-p="${esc(p)}" data-date="${k}" style="${style}" aria-label="${esc(aria)}">${inner}</button>`;
 }
 
@@ -814,7 +817,7 @@ function renderMatrix(){
   let html = `<div class="row head"><div class="hname">Dipendente</div>`;
   for(const x of days){
     const we = x.dow>4 || hol[x.key];
-    html += `<div class="dh${we?" we":""}${x.key===todayIso?" now":""}" title="${hol[x.key]||""}"><span>${WDL[x.dow]}</span><b>${x.d}</b></div>`;
+    html += `<div class="dh${we?" we":""}${hol[x.key]?" hol":""}${x.key===todayIso?" now":""}" title="${hol[x.key]||""}">${hol[x.key] ? `<em>FEST</em>` : ""}<span>${WDL[x.dow]}</span><b>${x.d}</b></div>`;
   }
   for(const c of cols) html += `<div class="th" style="color:${c.color}">${c.label}${c.small?`<small>${c.small}</small>`:""}</div>`;
   html += `</div>`;
@@ -1458,92 +1461,102 @@ async function loadJsPDF(){
   });
   return window.jspdf.jsPDF;
 }
+/* PDF della turnazione: A3 orizzontale, 4 mesi dal mese mostrato, 2 per riga */
+const PDF_COL = {"1":[56,189,248], "2":[52,211,153], "C":[251,191,36]};
+const PDF_INK = [22,25,31], PDF_GREY = [110,116,128], PDF_LINE = [214,218,224], PDF_WE = [253,236,236], PDF_WEINK = [210,40,50];
+const pdfLab = v => v==="C" ? "C" : v+"T";
+/* disegna un mese dentro il riquadro (bx,by,bw,bh), centrato */
+function pdfMonth(doc, y, m, bx, by, bw, bh){
+  const days = daysOf(y,m), hol = holidays(y), N = days.length;
+  const nameW = 32, totW = 9, dayW = (bw - nameW - 3*totW) / 31;
+  const gridW = nameW + N*dayW + 3*totW, x0 = bx + (bw - gridW)/2;   /* mesi corti: tabella al centro */
+  const titleH = 9, headH = 10, rowH = Math.min(20, (bh - titleH - headH) / PEOPLE.length);
+  const usedH = titleH + headH + rowH*PEOPLE.length, y0 = by + (bh - usedH)/2;
+  const top = y0 + titleH, WDS = ["L","M","M","G","V","S","D"];
+
+  doc.setFont("helvetica","bold"); doc.setFontSize(14); doc.setTextColor(...PDF_INK);
+  doc.text(`${MONTHS[m]} ${y}`, x0 + gridW/2, y0 + 6, {align:"center"});
+
+  doc.setFont("helvetica","bold"); doc.setFontSize(7); doc.setTextColor(...PDF_GREY);
+  doc.text("Dipendente", x0 + 1, top + 7);
+  days.forEach((x,i) => {
+    const cx = x0 + nameW + i*dayW, we = x.dow>4 || hol[x.key];
+    if(we){ doc.setFillColor(...PDF_WE); doc.rect(cx, top, dayW, headH + rowH*PEOPLE.length, "F"); }
+    doc.setTextColor(...(we ? PDF_WEINK : PDF_GREY)); doc.setFont("helvetica", hol[x.key] ? "bold" : "normal"); doc.setFontSize(6);
+    doc.text(hol[x.key] ? "F" : WDS[x.dow], cx + dayW/2, top + 3.6, {align:"center"});
+    doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor(...(we ? PDF_WEINK : PDF_INK));
+    doc.text(String(x.d), cx + dayW/2, top + 8, {align:"center"});
+  });
+  ["1","2","C"].forEach((k,j) => {
+    const cx = x0 + nameW + N*dayW + j*totW;
+    doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor(...PDF_INK);
+    doc.text(pdfLab(k), cx + totW/2, top + 8, {align:"center"});
+    doc.setFillColor(...PDF_COL[k]); doc.rect(cx + 1.5, top + 1.5, totW - 3, 1.2, "F");
+  });
+
+  PEOPLE.forEach((p, r) => {
+    const ry = top + headH + r*rowH;
+    doc.setDrawColor(...PDF_LINE); doc.setLineWidth(0.2);
+    doc.line(x0, ry, x0 + gridW, ry);
+    const nm = p.split(" "), last = nm.pop();
+    doc.setFont("helvetica","normal"); doc.setFontSize(7); doc.setTextColor(...PDF_INK);
+    doc.text(nm.join(" "), x0 + 1, ry + rowH/2 - 0.8);
+    doc.setFont("helvetica","bold"); doc.setFontSize(8.5);
+    doc.text(last, x0 + 1, ry + rowH/2 + 3.2);
+    const cnt = {"1":0,"2":0,"C":0};
+    days.forEach((x,i) => {
+      const v = turnOf(p, x.key); if(!v) return;
+      cnt[v]++;
+      const cx = x0 + nameW + i*dayW;
+      doc.setFillColor(...PDF_COL[v]);
+      doc.roundedRect(cx + 0.35, ry + 1, dayW - 0.7, rowH - 2, 0.8, 0.8, "F");
+      doc.setFont("helvetica","bold"); doc.setFontSize(v==="C" ? 8 : 6.5); doc.setTextColor(...PDF_INK);
+      doc.text(pdfLab(v), cx + dayW/2, ry + rowH/2 + 1.1, {align:"center"});
+    });
+    ["1","2","C"].forEach((k,j) => {
+      const cx = x0 + nameW + N*dayW + j*totW;
+      doc.setFont("helvetica","bold"); doc.setFontSize(8.5); doc.setTextColor(...(cnt[k] ? PDF_INK : PDF_GREY));
+      doc.text(cnt[k] ? String(cnt[k]) : "–", cx + totW/2, ry + rowH/2 + 1.2, {align:"center"});
+    });
+  });
+  const bottom = top + headH + rowH*PEOPLE.length;
+  doc.setDrawColor(...PDF_LINE); doc.line(x0, bottom, x0 + gridW, bottom);
+}
 async function exportPDF(){
   const btn = $("pdfBtn"), old = btn.textContent;
   btn.textContent = "Preparo il PDF…"; btn.disabled = true;
   try{
     const jsPDF = await loadJsPDF();
-    const doc = new jsPDF({orientation:"landscape", unit:"mm", format:"a4"});
-    const {y,m} = state, days = daysOf(y,m), hol = holidays(y);
-    const W = 297, M = 10, nameW = 40, totW = 11, N = days.length;
-    const dayW = (W - 2*M - nameW - 3*totW) / N;
-    const COL = {"1":[56,189,248], "2":[52,211,153], "C":[251,191,36]};
-    const INK = [22,25,31], GREY = [110,116,128], LINE = [214,218,224], WE = [253,236,236], WEINK = [210,40,50];
-    const lab = v => v==="C" ? "C" : v+"T";
+    const doc = new jsPDF({orientation:"landscape", unit:"mm", format:"a3"});
+    const W = 420, H = 297, M = 14, GX = 14, GY = 10;
+    const months = [0,1,2,3].map(i => { const d = new Date(state.y, state.m + i, 1); return [d.getFullYear(), d.getMonth()]; });
+    const [fy,fm] = months[0], [ly,lm] = months[3];
 
-    /* titolo */
-    doc.setFont("helvetica","bold"); doc.setFontSize(18); doc.setTextColor(...INK);
-    doc.text(`Turnazione manutenzione – ${MONTHS[m]} ${y}`, M, 16);
-    doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(...GREY);
-    doc.text("1T = 1° turno 06-14     2T = 2° turno 14-22     C = centrale 07-15", M, 22);
-    /* legenda a colori */
-    let lx = W - M - 3*30;
-    for(const k of ["1","2","C"]){
-      doc.setFillColor(...COL[k]); doc.roundedRect(lx, 12, 9, 6, 1, 1, "F");
-      doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.setTextColor(...INK);
-      doc.text(lab(k), lx+4.5, 16.2, {align:"center"});
-      doc.setFont("helvetica","normal"); doc.setTextColor(...GREY);
-      doc.text(k==="C" ? "Centrale" : k+"° turno", lx+11, 16.2);
-      lx += 30;
+    /* titolo e legenda, centrati */
+    doc.setFont("helvetica","bold"); doc.setFontSize(20); doc.setTextColor(...PDF_INK);
+    doc.text(`Turnazione manutenzione: ${MONTHS[fm]}${fy === ly ? "" : " " + fy} – ${MONTHS[lm]} ${ly}`, W/2, 18, {align:"center"});
+    const leg = [["1","1° turno 06-14"],["2","2° turno 14-22"],["C","Centrale 07-15"]], legW = 46;
+    let lx = W/2 - (leg.length*legW)/2;
+    for(const [k,t] of leg){
+      doc.setFillColor(...PDF_COL[k]); doc.roundedRect(lx, 23, 9, 6, 1, 1, "F");
+      doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.setTextColor(...PDF_INK);
+      doc.text(pdfLab(k), lx + 4.5, 27.2, {align:"center"});
+      doc.setFont("helvetica","normal"); doc.setTextColor(...PDF_GREY);
+      doc.text(t, lx + 11, 27.2);
+      lx += legW;
     }
 
-    /* intestazione giorni */
-    const top = 30, headH = 11;
-    const rowH = Math.min(26, (210 - top - headH - 24) / PEOPLE.length);
-    const WDS = ["L","M","M","G","V","S","D"];
-    doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.setTextColor(...GREY);
-    doc.text("Dipendente", M+1, top+7.5);
-    days.forEach((x,i) => {
-      const cx = M + nameW + i*dayW, we = x.dow>4 || hol[x.key];
-      if(we){ doc.setFillColor(...WE); doc.rect(cx, top, dayW, headH + rowH*PEOPLE.length, "F"); }
-      doc.setTextColor(...(we ? WEINK : GREY)); doc.setFont("helvetica","normal"); doc.setFontSize(7);
-      doc.text(WDS[x.dow], cx + dayW/2, top+4, {align:"center"});
-      doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.setTextColor(...(we ? WEINK : INK));
-      doc.text(String(x.d), cx + dayW/2, top+9, {align:"center"});
-    });
-    ["1","2","C"].forEach((k,j) => {
-      const cx = M + nameW + N*dayW + j*totW;
-      doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.setTextColor(...INK);
-      doc.text(lab(k), cx + totW/2, top+9, {align:"center"});
-      doc.setFillColor(...COL[k]); doc.rect(cx+2, top+1.5, totW-4, 1.4, "F");
-    });
+    /* 4 riquadri 2x2 */
+    const top = 34, foot = 10;
+    const bw = (W - 2*M - GX) / 2, bh = (H - top - foot - GY) / 2;
+    months.forEach(([yy,mm], i) => pdfMonth(doc, yy, mm, M + (i%2)*(bw + GX), top + Math.floor(i/2)*(bh + GY), bw, bh));
 
-    /* righe dipendenti */
-    PEOPLE.forEach((p, r) => {
-      const ry = top + headH + r*rowH;
-      doc.setDrawColor(...LINE); doc.setLineWidth(0.2);
-      doc.line(M, ry, W - M, ry);
-      const nm = p.split(" "), last = nm.pop();
-      doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(...INK);
-      doc.text(nm.join(" "), M+1, ry + rowH/2 - 1);
-      doc.setFont("helvetica","bold"); doc.setFontSize(11);
-      doc.text(last, M+1, ry + rowH/2 + 4);
-      const cnt = {"1":0,"2":0,"C":0};
-      days.forEach((x,i) => {
-        const v = turnOf(p, x.key); if(!v) return;
-        cnt[v]++;
-        const cx = M + nameW + i*dayW;
-        doc.setFillColor(...COL[v]);
-        doc.roundedRect(cx + 0.5, ry + 1.2, dayW - 1, rowH - 2.4, 1, 1, "F");
-        doc.setFont("helvetica","bold"); doc.setFontSize(v==="C" ? 13 : 11); doc.setTextColor(...INK);
-        doc.text(lab(v), cx + dayW/2, ry + rowH/2 + 1.6, {align:"center"});
-      });
-      ["1","2","C"].forEach((k,j) => {
-        const cx = M + nameW + N*dayW + j*totW;
-        doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.setTextColor(...(cnt[k] ? INK : GREY));
-        doc.text(cnt[k] ? String(cnt[k]) : "–", cx + totW/2, ry + rowH/2 + 1.6, {align:"center"});
-      });
-    });
-    const bottom = top + headH + rowH*PEOPLE.length;
-    doc.setDrawColor(...LINE); doc.line(M, bottom, W - M, bottom);
-
-    /* piè di pagina */
     const t = new Date();
-    doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(...GREY);
-    doc.text(`Totali a destra: giorni di 1° turno, 2° turno e centrale nel mese. Stampato il ${t.getDate()}/${t.getMonth()+1}/${t.getFullYear()}.`, M, 203);
+    doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(...PDF_GREY);
+    doc.text(`Giorni in rosso: sabato, domenica e festivi (F). Totali a destra: giorni di 1° turno, 2° turno e centrale nel mese. Stampato il ${t.getDate()}/${t.getMonth()+1}/${t.getFullYear()}.`, W/2, H - 6, {align:"center"});
 
     const blob = doc.output("blob");
-    await saveFile(`Turnazione manutenzione ${MONTHS[m]} ${y}.pdf`, blob);
+    await saveFile(`Turnazione manutenzione ${MONTHS[fm]} ${fy} - ${MONTHS[lm]} ${ly}.pdf`, blob);
   }catch(err){
     console.error(err);
     alertMsg("Non riesco a creare il PDF. Controlla di essere connesso a internet e riprova.");
