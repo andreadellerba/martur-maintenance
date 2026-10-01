@@ -173,6 +173,7 @@ dialog input{width:100%;font:inherit;font-size:22px;padding:10px 12px;border:1px
 dialog textarea{width:100%;font:inherit;font-size:15px;padding:8px 10px;border:1px solid var(--line-2);border-radius:8px;background:var(--surface-2);color:var(--text);resize:vertical}
 .tip{position:fixed;z-index:60;max-width:260px;padding:8px 10px;border-radius:8px;background:var(--text);color:var(--bg);font-size:13px;line-height:1.35;box-shadow:0 8px 24px rgba(0,0,0,.35);pointer-events:none;white-space:pre-wrap}
 .tip b{display:block;font-size:11px;opacity:.7;margin-bottom:2px}
+.tip br{display:block;content:"";margin-top:6px}
 .btn{border:1px solid var(--line-2);background:var(--surface-2);border-radius:8px;padding:9px 14px;cursor:pointer;font-weight:600}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
 .btn.ghost{margin-right:auto;background:none;color:var(--weekend);border-color:transparent}
@@ -487,7 +488,7 @@ function migrate(d){
   }
   for(const p of Object.keys(d.malattia||{})){
     const b = d.malattia[p];
-    for(const k of Object.keys(b)) if(typeof b[k]!=="number") b[k] = DAY_H;
+    for(const k of Object.keys(b)) if(typeof b[k]!=="number" && !(b[k] && typeof b[k]==="object" && typeof b[k].h==="number")) b[k] = DAY_H;
   }
   return d;
 }
@@ -531,27 +532,21 @@ const ABS = [
   {key:"mensa",    label:"Pausa mensa",   short:"MEN",  mk:"MS", color:"--c-men",   hex:"EA580C", h:(p,k)=>menH(p,k)}
 ];
 /* sigla e nome per esteso, con "anno precedente" per ferie e PAR */
-function absAP(a,p,k){ return (a.key==="f" && ferA(p,k)) || (a.key==="p" && parA(p,k)) ? "AP" : ""; }
+function absAP(a,p,k){ return (a.key==="f" && ferA(p,k)) || (a.key==="p" && parA(p,k)) || (a.key==="malattia" && malE(p,k).a==="AP") ? "AP" : ""; }
 function absShort(a,p,k){ return a.short + (absAP(a,p,k) ? " AP" : ""); }
 function absName(a,p,k){
   const n = a.key==="p" || a.key==="cigo" ? a.label : a.label.toLowerCase();
-  const e = get("ferie",p,k) || {}, cg = (a.key==="f" && e.fc) || (a.key==="p" && e.pc) ? " (CIGO nel report)" : "";
-  return ((a.key==="f" && ferA(p,k)) || (a.key==="p" && parA(p,k)) ? n + " AP" : n) + cg;
+  const e = get("ferie",p,k) || {}, cg = (a.key==="f" && e.fc) || (a.key==="p" && e.pc) || (a.key==="malattia" && malE(p,k).c) ? " (CIGO nel report)" : "";
+  return (absAP(a,p,k) ? n + " AP" : n) + cg;
 }
 function absList(p,k){ return ABS.map(a => ({...a, hours:a.h(p,k)})).filter(a => a.hours>0).sort((a,b)=>b.hours-a.hours); }
 
 /* turno manuale: durata e straordinario oltre il turno normale di riferimento */
 function manualCalc(s, e){
   let a = mins(s), b = mins(e); if(b<=a) b += 1440;
-  const dur = b - a;
-  /* turno di riferimento: quello con l'inizio più vicino (a parità, più sovrapposizione) */
-  let best = null;
-  for(const [ws,we] of STD){
-    const ov = Math.max(0, Math.min(b,we) - Math.max(a,ws)), dist = Math.abs(a - ws);
-    if(!best || dist < best.dist || (dist===best.dist && ov > best.ov)) best = {dist, ov};
-  }
-  const ot = (dur - best.ov)/60;
-  return {dur: dur/60, ot, worked: Math.min(DAY_H, dur/60 - ot)};
+  /* le ore inserite sono ore di lavoro: straordinario solo oltre le 8 ore */
+  const dur = (b - a)/60, ot = Math.max(0, dur - DAY_H);
+  return {dur, ot, worked: Math.min(DAY_H, dur)};
 }
 
 /* ore per giorno */
@@ -576,7 +571,8 @@ const ferP    = (p,k) => get("ferie",p,k)?.p || 0;
 /* ore dell'anno precedente: "AP" se segnate, altrimenti "" (anno corrente) */
 const ferA    = (p,k) => ferF(p,k) && get("ferie",p,k)?.a==="AP" ? "AP" : "";
 const parA    = (p,k) => ferP(p,k) && get("ferie",p,k)?.pa==="AP" ? "AP" : "";
-const malH    = (p,k) => Number(get("malattia",p,k)) || 0;
+const malE    = (p,k) => { const v = get("malattia",p,k); return v && typeof v==="object" ? v : {h: Number(v) || 0}; };   /* {h, a:"AP", c:conta come CIGO, n:commento} */
+const malH    = (p,k) => Number(malE(p,k).h) || 0;
 const cigH    = (p,k) => Number(get("cigo",p,k)) || 0;
 const visH    = (p,k) => Number(get("visita",p,k)) || 0;
 const menH    = (p,k) => Number(get("mensa",p,k)) || 0;
@@ -792,7 +788,7 @@ function cellHTML(p, x, hol, big){
       const h = hoursOf(cat,p,k);
       if(h>0){
         cls.push("val"); style = `--ac:${CATCOL[cat]}`;
-        inner = `<span class="t1">${fmt(h)}</span>`;
+        inner = `<span class="t1">${fmt(h)}</span>` + (cat==="malattia" && malE(p,k).a==="AP" ? `<span class="ap">AP</span>` : "");
         if(cat==="straordinario"){ const e = otExtra(p,k); inner += `<span class="t2 sm">${e && otAuto(p,k) ? "t+m" : e ? "man." : "turno"}</span>`; }
         aria += `, ${fmt(h)} ore`;
       }
@@ -1062,14 +1058,23 @@ function startPaint(p, key){
 const tipEl = document.createElement("div"); tipEl.className = "tip"; tipEl.hidden = true; document.body.appendChild(tipEl);
 let tipTimer = null, tipCell = null, tipXY = [0,0];
 function hideTip(){ clearTimeout(tipTimer); tipTimer = null; tipCell = null; tipEl.hidden = true; }
+/* righe del riquadro: commenti di ferie/PAR e malattia del giorno */
+function tipLines(p, k){
+  const e = get("ferie",p,k) || {}, m = malE(p,k), out = [];
+  if(e.n){
+    const parts = [];
+    if(e.f) parts.push(`Ferie${e.a==="AP" ? " AP" : ""} ${fmt(e.f)} h${e.fc ? " (CIGO)" : ""}`);
+    if(e.p) parts.push(`PAR${e.pa==="AP" ? " AP" : ""} ${fmt(e.p)} h${e.pc ? " (CIGO)" : ""}`);
+    out.push(`<b>${esc(parts.join(" · "))}</b>${esc(e.n)}`);
+  }
+  if(m.n && m.h) out.push(`<b>Malattia${m.a==="AP" ? " AP" : ""} ${fmt(m.h)} h${m.c ? " (CIGO)" : ""}</b>${esc(m.n)}`);
+  return out;
+}
 function showTip(){
   if(!tipCell) return;
-  const e = get("ferie", tipCell.dataset.p, tipCell.dataset.date);
-  if(!e || !e.n) return;
-  const parts = [];
-  if(e.f) parts.push(`Ferie${e.a==="AP" ? " AP" : ""} ${fmt(e.f)} h${e.fc ? " (CIGO)" : ""}`);
-  if(e.p) parts.push(`PAR${e.pa==="AP" ? " AP" : ""} ${fmt(e.p)} h${e.pc ? " (CIGO)" : ""}`);
-  tipEl.innerHTML = `<b>${esc(parts.join(" · "))}</b>${esc(e.n)}`;
+  const lines = tipLines(tipCell.dataset.p, tipCell.dataset.date);
+  if(!lines.length) return;
+  tipEl.innerHTML = lines.join("<br>");
   tipEl.hidden = false;
   const r = tipEl.getBoundingClientRect();
   let x = tipXY[0] + 14, y = tipXY[1] + 18;
@@ -1081,7 +1086,7 @@ $("matrix").addEventListener("pointermove", e => {
   if(e.pointerType !== "mouse") return;
   const c = e.target.closest(".cell[data-date]");
   if(c !== tipCell) hideTip();
-  if(!c || !get("ferie", c.dataset.p, c.dataset.date)?.n) return;
+  if(!c || !tipLines(c.dataset.p, c.dataset.date).length) return;
   tipCell = c; tipXY = [e.clientX, e.clientY];
   if(!tipEl.hidden) return;
   clearTimeout(tipTimer); tipTimer = setTimeout(showTip, 500);   /* mouse fermo mezzo secondo */
@@ -1251,6 +1256,7 @@ function dateLabel(key){
 const DLG_TITLE = {straordinario:"Straordinario extra", ferie:"Ferie / PAR", malattia:"Malattia", cigo:"CIGO", visita:"Visita medica", mensa:"Pausa mensa"};
 function curHours(cat, key){
   if(cat==="ferie") return ferieType==="p" ? ferP(state.person,key) : ferF(state.person,key);
+  if(cat==="malattia") return malH(state.person,key);
   return Number(get(cat,state.person,key)) || 0;
 }
 function setChips(key){
@@ -1302,11 +1308,14 @@ function openHours(key, cat = state.cat){
     if(f && !p) ferieType = "f"; else if(p && !f) ferieType = "p";
     setType(ferieType);
     $("ferNote").value = get("ferie",state.person,key)?.n || "";
+  } else if(cat==="malattia"){
+    const me = malE(state.person,key);
+    setYear(me.a); setCig(me.c); $("ferNote").value = me.n || "";
   } else if(cat==="straordinario"){
     const a = otAuto(state.person, key);
     if(a) sub += `. Dal turno: ${fmt(a)} h (automatico), qui aggiungi solo le ore in più.`;
   }
-  const cur = cat==="ferie" ? curHours(cat,key) : get(cat,state.person,key);
+  const cur = cat==="ferie" || cat==="malattia" ? curHours(cat,key) : get(cat,state.person,key);
   $("hours").value = cur ? cur : cat==="mensa" ? 0.5 : "";   /* mensa: di solito 30 minuti */
   $("dlgSub").textContent = sub;
   setChips(key);
@@ -1328,7 +1337,7 @@ function updateCalc(){
   const s = $("tStart").value, e = $("tEnd").value;
   if(!s || !e){ $("tCalc").textContent = ""; return; }
   const c = manualCalc(s,e);
-  $("tCalc").innerHTML = `<strong>${fmt(c.dur)} h</strong> lavorate, <strong>${fmt(c.ot)} h</strong> di straordinario automatico`;
+  $("tCalc").innerHTML = `<strong>${fmt(c.worked)} h</strong> lavorate` + (c.ot ? `, <strong>${fmt(c.ot)} h</strong> di straordinario (oltre le 8 ore)` : c.worked<DAY_H ? `, restano <strong>${fmt(DAY_H-c.worked)} h</strong> da coprire` : "");
 }
 $("tStart").addEventListener("input", updateCalc);
 $("tEnd").addEventListener("input", updateCalc);
@@ -1342,7 +1351,8 @@ function setType(t){
 }
 $("seg").addEventListener("click", e => { const x = e.target.closest("button"); if(x) setType(x.dataset.t); });
 /* ferie e PAR: "Anno precedente" acceso = "AP", spento = anno corrente */
-function showYear(){ $("yearBtn").hidden = $("ferNote").hidden = $("ferNoteLab").hidden = $("cigRow").hidden = dlgMode!=="ferie"; }
+const EXTRA = ["ferie","malattia"];   /* categorie con anno precedente, commento e "contalo come CIGO" */
+function showYear(){ $("yearBtn").hidden = $("ferNote").hidden = $("ferNoteLab").hidden = $("cigRow").hidden = !EXTRA.includes(dlgMode); }
 /* "Contalo come CIGO": in presenze restano ferie/PAR, nel report vanno nella colonna CIGO */
 function setCig(v){ ferieCig = !!v; $("cigBtn").setAttribute("aria-pressed", ferieCig); }
 $("cigBtn").onclick = () => setCig(!ferieCig);
@@ -1367,16 +1377,27 @@ function writeHours(cat, key, v, type, year, note, cig){
     if(o.f+o.p>0) b[key] = o; else delete b[key];
     return;
   }
+  if(cat==="malattia"){
+    /* numero semplice se non ci sono extra, altrimenti {h, a, c, n} */
+    if(isNaN(v) || v<=0){ delete b[key]; return; }
+    const old = malE(state.person,key), o = {h:v};
+    if((year!==undefined ? year : old.a)==="AP") o.a = "AP";
+    if(cig!==undefined ? cig : old.c) o.c = true;
+    const n = note!==undefined ? note.trim() : (old.n || "");
+    if(n) o.n = n;
+    b[key] = o.a || o.c || o.n ? o : v;
+    return;
+  }
   if(isNaN(v) || v<=0) delete b[key]; else b[key] = v;
 }
 function saveHours(v){
   const key = editing, cat = dlgMode;
   if(multiKeys){
-    const ks = multiKeys, note = cat==="ferie" ? $("ferNote").value : undefined, cig = cat==="ferie" ? ferieCig : undefined; multiKeys = null;
-    commit(() => { ks.forEach(({p,k}) => { state.person = p; writeHours(cat, k, v, ferieType, ferieYear, note, cig); }); state.msel = null; });
+    const ks = multiKeys, note = EXTRA.includes(cat) ? $("ferNote").value : undefined, cig = EXTRA.includes(cat) ? ferieCig : undefined; multiKeys = null;
+    commit(() => { ks.forEach(({p,k}) => { state.person = p; writeHours(cat, k, v, ferieType, EXTRA.includes(cat) ? ferieYear : undefined, note, cig); }); state.msel = null; });
     return;
   }
-  commit(() => writeHours(cat, key, v, ferieType, ferieYear, cat==="ferie" ? $("ferNote").value : undefined, cat==="ferie" ? ferieCig : undefined));
+  commit(() => writeHours(cat, key, v, ferieType, EXTRA.includes(cat) ? ferieYear : undefined, EXTRA.includes(cat) ? $("ferNote").value : undefined, EXTRA.includes(cat) ? ferieCig : undefined));
   if(cat!=="straordinario") askRest(key);
 }
 $("chips").addEventListener("click", e => {
@@ -1760,7 +1781,7 @@ function statsRange(p, keys){
     if(v!==undefined && !(isWorkday(k) && absH(p,k) >= DAY_H)){ st.gg++; const id = sid(v); if(id in st.sh) st.sh[id]++; }
     st.ord += worked(p,k); st.ot += otDay(p,k);
     const fe = get("ferie",p,k) || {}, fcig = fe.fc ? ferF(p,k) : 0, pcig = fe.pc ? ferP(p,k) : 0;   /* ferie/PAR "contate come CIGO" */
-    st.f += ferF(p,k) - fcig; st.par += ferP(p,k) - pcig; st.mal += malH(p,k); st.cig += cigH(p,k) + fcig + pcig; st.vis += visH(p,k); st.men += menH(p,k);
+    st.f += ferF(p,k) - fcig; const mcig = malE(p,k).c ? malH(p,k) : 0; st.par += ferP(p,k) - pcig; st.mal += malH(p,k) - mcig; st.cig += cigH(p,k) + fcig + pcig + mcig; st.vis += visH(p,k); st.men += menH(p,k);
   }
   return st;
 }
