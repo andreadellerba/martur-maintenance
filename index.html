@@ -17,7 +17,7 @@
   --text:#EDEFF2; --muted:#8C95A3; --muted-2:#A7AFBC;
   --weekend:#F87171; --weekend-bg:#22171B; --weekend-line:#3A2329;
   --s1:#38BDF8; --s2:#34D399; --sc:#FBBF24; --s1l:#38BDF8; --s2l:#34D399; --sm:#94A3B8; --c-turn:#C7D2FE;
-  --c-pres:#34D399; --c-stra:#FCD34D; --c-ferie:#60A5FA; --c-par:#7DD3FC; --c-mal:#A78BFA; --c-cigo:#FB7185; --c-vis:#2DD4BF; --c-men:#FB923C;
+  --c-pres:#34D399; --c-stra:#FCD34D; --c-ferie:#60A5FA; --c-par:#7DD3FC; --c-mal:#FF4545; --c-cigo:#C98B55; --c-vis:#2DD4BF; --c-men:#FB923C;
   --on-fill:#0F1216; --on-accent:#0F1216;
   --today:#4ADE80; --faint:#6F7886; --btn-text:#CBD1DA; --cell-line:#20252C; --hover-line:#4A5260; --backdrop:rgba(0,0,0,.6);
   --accent:var(--c-pres);
@@ -31,7 +31,7 @@
   --text:#14171C; --muted:#56606E; --muted-2:#3E4652;
   --weekend:#C81E3A; --weekend-bg:#FCEBED; --weekend-line:#F3C9D0;
   --sm:#94A3B8; --c-turn:#4338CA;
-  --c-pres:#047857; --c-stra:#A16207; --c-ferie:#1D4ED8; --c-par:#0E7490; --c-mal:#6D28D9; --c-cigo:#BE123C; --c-vis:#0F766E; --c-men:#C2410C;
+  --c-pres:#047857; --c-stra:#A16207; --c-ferie:#1D4ED8; --c-par:#0E7490; --c-mal:#D90429; --c-cigo:#7A4A1E; --c-vis:#0F766E; --c-men:#C2410C;
   --on-accent:#FFFFFF;
   --today:#15803D; --faint:#646D7A; --btn-text:#2F3640; --cell-line:#DDE2E9; --hover-line:#8E97A4; --backdrop:rgba(20,23,28,.45);
   color-scheme:light;
@@ -525,10 +525,10 @@ function timeLabel(v){
 }
 /* assenza principale del giorno (quella con più ore) */
 const ABS = [
-  {key:"malattia", label:"Malattia",      short:"MAL",  mk:"M", color:"--c-mal",   hex:"7C3AED", h:(p,k)=>malH(p,k)},
+  {key:"malattia", label:"Malattia",      short:"MAL",  mk:"M", color:"--c-mal",   hex:"DC2626", h:(p,k)=>malH(p,k)},
   {key:"f",        label:"Ferie",         short:"FER",  mk:"F", color:"--c-ferie", hex:"2563EB", h:(p,k)=>ferF(p,k)},
   {key:"p",        label:"PAR",           short:"PAR",  mk:"P", color:"--c-par",   hex:"0891B2", h:(p,k)=>ferP(p,k)},
-  {key:"cigo",     label:"CIGO",          short:"CIGO", mk:"C", color:"--c-cigo",  hex:"E11D48", h:(p,k)=>cigH(p,k)},
+  {key:"cigo",     label:"CIGO",          short:"CIGO", mk:"C", color:"--c-cigo",  hex:"8B5A2B", h:(p,k)=>cigH(p,k)},
   {key:"visita",   label:"Visita medica", short:"VIS",  mk:"V", color:"--c-vis",   hex:"0D9488", h:(p,k)=>visH(p,k)},
   {key:"mensa",    label:"Pausa mensa",   short:"MEN",  mk:"MS", color:"--c-men",   hex:"EA580C", h:(p,k)=>menH(p,k)}
 ];
@@ -1547,8 +1547,8 @@ async function exportExcel(){
       {label:"Straordinario",  val:otDay,  hex:"B45309"},
       {label:"Ferie",          val:ferF,   hex:"2563EB"},
       {label:"PAR",            val:ferP,   hex:"0891B2"},
-      {label:"Malattia",       val:malH,   hex:"7C3AED"},
-      {label:"CIGO",           val:cigH,   hex:"E11D48"},
+      {label:"Malattia",       val:malH,   hex:"DC2626"},
+      {label:"CIGO",           val:cigH,   hex:"8B5A2B"},
       {label:"Visita medica",  val:visH,   hex:"0D9488"},
       {label:"Pausa mensa",    val:menH,   hex:"EA580C"}
     ];
@@ -1603,7 +1603,7 @@ async function exportExcel(){
     ws.getCell(`A${r}`).value = `RIEPILOGO ${MONTHS[m].toUpperCase()} ${y}`;
     ws.getCell(`A${r}`).font = {bold:true, size:13};
     r++;
-    const SUMHEX = [null, "059669", "059669", "B45309", "2563EB", "0891B2", "7C3AED", "E11D48", "0D9488", "EA580C"];
+    const SUMHEX = [null, "059669", "059669", "B45309", "2563EB", "0891B2", "DC2626", "8B5A2B", "0D9488", "EA580C"];
     const heads = ["Dipendente","Giorni","Ore lav.","Straord.","Ferie","PAR","Malattia","CIGO","Visita med.","Mensa"];
     const hr = ws.getRow(r);
     heads.forEach((h,i) => {
