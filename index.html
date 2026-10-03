@@ -15,7 +15,7 @@
 :root{
   --bg:#101317; --surface:#171B21; --surface-2:#1C2027; --surface-3:#2A3039; --line:#242932; --line-2:#2E343E;
   --text:#EDEFF2; --muted:#8C95A3; --muted-2:#A7AFBC;
-  --weekend:#F87171; --weekend-bg:#22171B; --weekend-line:#3A2329;
+  --weekend:#FF3B4E; --weekend-ink:#FF8A95; --weekend-bg:#5C1424; --weekend-line:#A3233A;
   --s1:#1EB4FF; --s2:#00E08A; --sc:#FFC400; --s1l:#1EB4FF; --s2l:#00E08A; --sm:#9FB0C8; --c-turn:#B4C4FF;
   --c-pres:#00E676; --c-stra:#FFDD00; --c-ferie:#3D8BFF; --c-par:#00D0FF; --c-mal:#FF4545; --c-cigo:#D9822B; --c-vis:#14F0C8; --c-men:#FF9100;
   --on-fill:#0F1216; --on-accent:#0F1216;
@@ -29,7 +29,7 @@
 :root[data-theme="light"]{
   --bg:#F3F5F8; --surface:#FFFFFF; --surface-2:#E9EDF2; --surface-3:#D5DBE3; --line:#DDE2E9; --line-2:#C9D0DA;
   --text:#14171C; --muted:#56606E; --muted-2:#3E4652;
-  --weekend:#C81E3A; --weekend-bg:#FCEBED; --weekend-line:#F3C9D0;
+  --weekend:#E0102F; --weekend-ink:#C00020; --weekend-bg:#FFD3DA; --weekend-line:#F28A9B;
   --sm:#94A3B8; --c-turn:#4338CA;
   --c-pres:#00894A; --c-stra:#B37A00; --c-ferie:#1456F0; --c-par:#0086B3; --c-mal:#D90429; --c-cigo:#7A4A1E; --c-vis:#00806E; --c-men:#E65100;
   --on-accent:#FFFFFF;
@@ -96,7 +96,7 @@ button{font:inherit;color:inherit}
 .dh{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:4px;border-radius:6px;color:var(--muted-2);line-height:1.05}
 .dh span{font-size:10px;font-weight:600;opacity:.8}
 .dh b{font-family:var(--display);font-size:17px}
-.dh.we{color:var(--weekend);background:var(--weekend-bg)}
+.dh.we{color:var(--weekend-ink);background:var(--weekend-bg)}
 .dh em{font-style:normal;font-size:8px;font-weight:800;letter-spacing:.02em;padding:0 2px;margin-bottom:2px;border-radius:3px;background:var(--weekend);color:var(--bg)}
 .cell .fest{font-family:var(--body);font-size:7.5px;font-weight:800;letter-spacing:.02em;white-space:nowrap;max-width:100%;overflow:hidden;padding:1px 2px;margin-bottom:2px;border-radius:3px;background:var(--weekend);color:var(--bg)}
 .cell:not(.lg) .fest::before{content:"FEST"}
@@ -240,7 +240,7 @@ body:not(.locked) .lock{display:none}
 .s-empty{min-height:92px}
 .cell.lg{min-height:92px;border-radius:10px;gap:3px}
 .cell.lg .dn{position:absolute;top:6px;left:8px;font-family:var(--display);font-size:16px;font-weight:700;opacity:.85}
-.cell.lg.we .dn{color:var(--weekend)}
+.cell.lg.we .dn{color:var(--weekend-ink)}
 .cell.lg.shift .dn{color:inherit}
 .cell.lg .t1{font-size:22px}
 .cell.lg .t2{font-size:18px}
@@ -868,7 +868,7 @@ function renderMatrix(){
   html += `<div class="row head"><div class="hname">Dipendente</div>`;
   for(const x of days){
     const we = x.dow>4 || hol[x.key];
-    html += `<div class="dh${we?" we":""}${hol[x.key]?" hol":""}${x.key===todayIso?" now":""}" title="${hol[x.key]||""}">${hol[x.key] ? `<em>FEST</em>` : ""}<span>${WDL[x.dow]}</span><b>${x.d}</b></div>`;
+    html += `<div class="dh${we?" we":""}${hol[x.key]?" hol":""}${x.key===todayIso?" now":""}" title="${hol[x.key]||""}">${hol[x.key] && cat!=="turnazione" ? `<em>FEST</em>` : ""}<span>${WDL[x.dow]}</span><b>${x.d}</b></div>`;
   }
   for(const c of cols) html += `<div class="th" style="color:${c.color}">${c.label}${c.small?`<small>${c.small}</small>`:""}</div>`;
   html += `</div>`;
@@ -1694,7 +1694,7 @@ function pdfMonth(doc, y, m, bx, by, bw, bh){
     const cx = x0 + nameW + i*dayW, we = x.dow>4 || hol[x.key];
     if(we){ doc.setFillColor(...PDF_WE); doc.rect(cx, top, dayW, headH + rowH*PEOPLE.length, "F"); }
     doc.setTextColor(...(we ? PDF_WEINK : PDF_GREY)); doc.setFont("helvetica", hol[x.key] ? "bold" : "normal"); doc.setFontSize(6);
-    doc.text(hol[x.key] ? "F" : WDS[x.dow], cx + dayW/2, top + 3.6, {align:"center"});
+    doc.text(WDS[x.dow], cx + dayW/2, top + 3.6, {align:"center"});
     doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor(...(we ? PDF_WEINK : PDF_INK));
     doc.text(String(x.d), cx + dayW/2, top + 8, {align:"center"});
   });
@@ -1716,7 +1716,11 @@ function pdfMonth(doc, y, m, bx, by, bw, bh){
     doc.text(last, x0 + 1, ry + rowH/2 + 3.2);
     const cnt = {"1":0,"2":0,"C":0};
     days.forEach((x,i) => {
-      const v = turnOf(p, x.key); if(!v) return;
+      const v = turnOf(p, x.key);
+      if(!v){   /* festivo senza turno: F al posto del turno */
+        if(hol[x.key]){ doc.setFont("helvetica","bold"); doc.setFontSize(7.5); doc.setTextColor(...PDF_WEINK); doc.text("F", x0 + nameW + i*dayW + dayW/2, ry + rowH/2 + 1.2, {align:"center"}); }
+        return;
+      }
       cnt[v]++;
       const cx = x0 + nameW + i*dayW;
       doc.setFillColor(...PDF_COL[v]);
@@ -1764,7 +1768,7 @@ async function exportPDF(){
 
     const t = new Date();
     doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(...PDF_GREY);
-    doc.text(`Giorni in rosso: sabato, domenica e festivi (F). Totali a destra: giorni di 1° turno, 2° turno e centrale nel mese. Stampato il ${t.getDate()}/${t.getMonth()+1}/${t.getFullYear()}.`, W/2, H - 6, {align:"center"});
+    doc.text(`Giorni in rosso: sabato, domenica e festivi (F nella casella). Totali a destra: giorni di 1° turno, 2° turno e centrale nel mese. Stampato il ${t.getDate()}/${t.getMonth()+1}/${t.getFullYear()}.`, W/2, H - 6, {align:"center"});
 
     const blob = doc.output("blob");
     await saveFile(`Turnazione manutenzione ${MONTHS[fm]} ${fy} - ${MONTHS[lm]} ${ly}.pdf`, blob);
