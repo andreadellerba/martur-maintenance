@@ -231,6 +231,12 @@ select.today,.jump{background:var(--surface);color:var(--text);font:inherit;font
 /* finestre */
 dialog{border:1px solid var(--line-2);border-radius:14px;background:var(--surface);color:var(--text);padding:22px;width:min(360px,calc(100% - 32px))}
 dialog::backdrop{background:var(--backdrop)}
+#newsDlg{width:min(680px,calc(100% - 32px));max-height:86vh;overflow:auto;padding:24px 26px}
+#newsDlg h2{font-size:32px}
+.news{display:flex;flex-direction:column;gap:14px}
+.news h3{margin:0 0 4px;font-family:var(--display);font-size:18px;font-weight:700;letter-spacing:.02em;color:var(--c-pres)}
+.news ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
+.news li{font-size:14px;line-height:1.45;color:var(--text)}
 dialog h2{font-family:var(--display);font-size:30px;font-weight:700;margin:0 0 4px}
 dialog p{margin:0 0 14px;color:var(--muted);font-size:14px}
 dialog input{width:100%;font:inherit;font-size:22px;padding:10px 12px;border:1px solid var(--line-2);border-radius:8px;background:var(--surface-2);color:var(--text)}
@@ -519,6 +525,47 @@ body:not(.locked) .lock{display:none}
       <button type="submit" class="btn primary">Salva</button>
     </div>
   </form>
+</dialog>
+<dialog id="newsDlg" aria-labelledby="newsTitle">
+  <h2 id="newsTitle">Novità dell'app</h2>
+  <p>Ecco cosa è cambiato. Questo messaggio compare una volta sola; lo ritrovi in Impostazioni.</p>
+  <div class="news">
+    <section><h3>Accesso e dati</h3><ul>
+      <li>Si entra con email e password e l'app ricorda l'accesso sul dispositivo.</li>
+      <li>I dati si salvano online da soli e sono gli stessi su ogni computer o telefono. Senza internet funziona lo stesso e si sincronizza dopo.</li>
+    </ul></section>
+    <section><h3>Calendario più chiaro</h3><ul>
+      <li>Nelle caselle dei turni l'orario è scritto per intero, dalle e alle (07:00 / 15:00). In fondo, nella fascia scura, le altre voci con le ore: PAR 1H, +0,5H di straordinario, −2H se mancano ore.</li>
+      <li>Giorno incompleto: pallino rosso in alto al centro della casella.</li>
+      <li>Ferie, PAR, malattia, CIGO e straordinario scritti in grande e in maiuscolo (per esempio + / FER / 8 / ORE).</li>
+      <li>Sabati e domeniche vuoti si stringono e lasciano spazio agli altri giorni. I festivi sono tutti rossi, con una F grande.</li>
+      <li>Sotto ogni nome: giorni, ore lavorate e le altre voci del mese (ore extra, ferie, PAR, malattia, CIGO). Il totale a destra non c'è più.</li>
+      <li>Sopra il calendario il numero della settimana (W40, W41…). Tema scuro più nero, per più contrasto.</li>
+    </ul></section>
+    <section><h3>Barra sopra il calendario</h3><ul>
+      <li>Qui ci sono i turni, da cliccare o da trascinare sulle caselle, e tutte le voci: orario manuale, ferie e PAR, malattia, straordinario, CIGO, visita medica, pausa mensa, festività, commento.</li>
+      <li>La ✕ svuota il giorno. Il riquadro a sinistra mostra la foto del dipendente: cliccalo per caricarla.</li>
+    </ul></section>
+    <section><h3>Selezionare più giorni</h3><ul>
+      <li>Trascina col mouse per selezionare più giorni e più persone insieme: quello che scegli vale per tutte le caselle selezionate.</li>
+      <li>Un secondo clic sulla casella toglie la selezione. Tasti: 1–5 turni, 6 orario manuale, 0 svuota, Esc deseleziona, Ctrl+Z annulla.</li>
+    </ul></section>
+    <section><h3>Nuove voci e opzioni</h3><ul>
+      <li>Visita medica e pausa mensa (proposta da 30 minuti).</li>
+      <li>Commenti su ogni casella: si leggono fermando il mouse sopra, e un asterisco * indica che c'è un commento.</li>
+      <li>Per ferie, PAR e malattia: «Anno precedente» (AP) e «Contalo come CIGO», che nel report sposta quelle ore nella colonna CIGO.</li>
+      <li>Orario manuale: le ore inserite contano come lavorate, lo straordinario parte solo oltre le 8 ore.</li>
+    </ul></section>
+    <section><h3>Festività</h3><ul>
+      <li>Aggiunto il 4 ottobre (San Francesco). Con il pulsante Festività si inserisce una festività aziendale, valida per tutto il reparto.</li>
+    </ul></section>
+    <section><h3>Viste, stampa e impostazioni</h3><ul>
+      <li>Vista mensile o settimanale, e un selettore per saltare subito a qualsiasi mese o settimana.</li>
+      <li>Il PDF della rotazione turni esce in A3 con 4 mesi, 2 per riga.</li>
+      <li>Il menu ora ha GESTIONE PRESENZE, ROTAZIONE TURNI e la nuova pagina IMPOSTAZIONI, dove si sceglie il tema chiaro o scuro e si cambiano i colori di turni e voci.</li>
+    </ul></section>
+  </div>
+  <div class="dlg-actions"><button type="button" class="btn primary" id="newsOk">Ho capito</button></div>
 </dialog>
 <dialog id="rest">
   <h2 id="restTitle"></h2>
@@ -1565,7 +1612,7 @@ $("detail").addEventListener("click", e => {
 
 /* tastiera */
 document.addEventListener("keydown", e => {
-  if($("dlg").open || $("rest").open || $("noteDlg").open || $("holDlg").open) return;
+  if($("dlg").open || $("rest").open || $("noteDlg").open || $("holDlg").open || $("newsDlg").open) return;
   if((e.ctrlKey||e.metaKey) && !e.shiftKey && e.key.toLowerCase()==="z"){ e.preventDefault(); undo(); return; }
   if(!["presenze","turnazione"].includes(state.cat) || e.ctrlKey || e.metaKey || e.altKey) return;
   if(e.target.closest && e.target.closest("input,textarea")) return;
@@ -2278,7 +2325,8 @@ function renderSettings(){
   const theme = document.documentElement.dataset.theme==="light" ? "light" : "dark";
   let h = `<div class="set-card"><h2>Tema</h2>
     <div class="seg2"><button class="rp-chip" data-theme-set="dark" aria-pressed="${theme==="dark"}">Scuro</button><button class="rp-chip" data-theme-set="light" aria-pressed="${theme==="light"}">Chiaro</button></div>
-    <p class="set-note">Vale solo per questo dispositivo.</p></div>`;
+    <p class="set-note">Vale solo per questo dispositivo.</p></div>
+    <div class="set-card"><div class="set-head"><h2>Novità</h2><button class="btn-o" id="newsOpen">Vedi le novità</button></div><p class="set-note">L'elenco delle ultime modifiche all'app.</p></div>`;
   h += `<div class="set-card"><div class="set-head"><h2>Colori</h2>${Object.keys(col).some(k => typeof col[k]==="string") ? `<button class="btn-o" id="colResetAll">Ripristina tutti i colori originali</button>` : ""}</div>
     <p class="set-note">Clicca sul colore per sceglierne un altro. I colori valgono per tutti e due.</p>`;
   for(const [g, items] of COLOR_DEFS){
@@ -2301,7 +2349,14 @@ $("settings").addEventListener("click", e => {
   if(t.dataset.pick){ const v = t.dataset.v, c = t.dataset.pick; colorOpen = null; commit(() => { data.colori ??= {}; data.colori[v] = c; }); return; }
   if(t.dataset.colreset){ const v = t.dataset.colreset; commit(() => { if(data.colori) delete data.colori[v]; }); return; }
   if(t.id==="colResetAll"){ commit(() => { data.colori = {}; }); return; }
+  if(t.id==="newsOpen"){ showNews(true); return; }
 });
+
+/* novità: compaiono una volta per ogni aggiornamento, poi si riaprono da Impostazioni */
+const NEWS_KEY = "registro-novita", NEWS_VER = "2026-10-04";
+function showNews(force){ if(force || lsGet(NEWS_KEY)!==NEWS_VER){ if(!$("newsDlg").open) $("newsDlg").showModal(); $("newsDlg").scrollTop = 0; } }
+$("newsOk").onclick = () => { lsSet(NEWS_KEY, NEWS_VER); $("newsDlg").close(); };
+$("newsDlg").addEventListener("close", () => lsSet(NEWS_KEY, NEWS_VER));
 
 /* ---------- Tema chiaro / scuro ---------- */
 const THEME_KEY = "registro-reparto-tema";
@@ -2459,6 +2514,7 @@ function lockMsg(t){ $("lockErr").textContent = t; $("lockErr").hidden = !t; }
       $("lockPw").value = "";
       document.body.classList.remove("locked");
       if(!unsub) listen();
+      setTimeout(() => showNews(false), 400);
       render();
     } else {
       unlocked = false;
