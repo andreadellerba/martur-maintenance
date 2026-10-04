@@ -134,7 +134,8 @@ select.today,.jump{background:var(--surface);color:var(--text);font:inherit;font
 .prow.on .pn b{color:var(--accent)}
 .pn{display:flex;flex-direction:column;gap:1px;min-width:0}
 .pn b{font-size:12.5px;line-height:1.15}
-.pn small{font-size:12px;color:var(--muted)}
+.pn small{font-size:12px;color:var(--muted);line-height:1.25}
+.pn .pmore{font-size:10.5px;font-weight:600;line-height:1.2}
 .cell{position:relative;border-radius:6px;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;cursor:pointer;min-width:0;font-family:var(--display);line-height:1;background:var(--surface);border:1px solid var(--cell-line);color:var(--text);user-select:none;overflow:hidden}
 .cell:hover{border-color:var(--hover-line)}
 .cell.we{background:var(--weekend-bg);border-color:var(--weekend-line)}
@@ -818,6 +819,11 @@ const ghost = n => n ? fmt(n) : "–";
 
 /* colonne dei totali a destra */
 function totalCols(){
+  if(state.cat==="turnazione" || state.cat==="presenze") return [];   /* i totali stanno sotto il nome */
+  return summaryCols();
+}
+/* totali di presenze e turnazione: sotto il nome e nella vista del singolo */
+function summaryCols(){
   if(state.cat==="turnazione") return ["1","2","C"].map(t => ({label: t==="C" ? "C" : t+"T", color:`var(${SHIFTS[t].color})`, v:p=>{ let n=0; for(const x of viewDays()) if(turnOf(p,x.key)===t) n++; return n; }}));
   if(state.cat==="presenze") return [
     {label:"Ore", color:"var(--c-pres)", v:p=>sumMonth(p,worked)},
@@ -869,8 +875,8 @@ function cellHTML(p, x, hol, big){
   if(cat==="turnazione"){
     const v = turnOf(p,k), man = get("turnazione",p,k)!==undefined;
     if(v){
-      cls.push("shift"); style = `--ac:var(${SHIFTS[v].color})`;
-      inner = `<span class="t1 big">${v==="C" ? "C" : v+"T"}</span>`;
+      cls.push("shift","tfx"); style = `--ac:var(${SHIFTS[v].color})`;
+      const [a,b] = SHIFTS[v].time.split("-"); inner = `<span class="tm"><b>${hhmm(a)}</b><i class="sep"></i><b>${hhmm(b)}</b></span>`;
       aria += `, ${TNAME[v]}`;
     }
     if(man){ inner += `<span class="man" title="Cambiato a mano"></span>`; aria += ", cambiato a mano"; }
@@ -966,7 +972,7 @@ function renderSingle(p){
   html += `</div>`;
   /* totali del mese */
   let tots;
-  if(cat==="presenze" || cat==="turnazione") tots = totalCols().map(c => ({label:c.label, color:c.color, v: c.label==="Str." && c.v(p) ? "+"+fmt(c.v(p)) : ghost(c.v(p))}));
+  if(cat==="presenze" || cat==="turnazione") tots = summaryCols().map(c => ({label:c.label, color:c.color, v: c.label==="Str." && c.v(p) ? "+"+fmt(c.v(p)) : ghost(c.v(p))}));
   else if(cat==="ferie") tots = [{label:"Ferie", color:"var(--c-ferie)", v:ghost(sumMonth(p,ferF))},{label:"PAR", color:"var(--c-par)", v:ghost(sumMonth(p,ferP))}];
   else tots = [{label:state.span==="week" ? "Settimana" : "Mese", color:CATCOL[cat], v:ghost(sumMonth(p,(q,k)=>hoursOf(cat,q,k)))}];
   html += `<div class="s-tots">${tots.map(t => `<span class="s-tot" style="color:${t.color}"><small>${t.label}</small><b>${t.v}</b></span>`).join("")}</div>`;
@@ -989,7 +995,7 @@ function renderMatrix(){
   const {cat} = state, days = viewDays(), hol = holMap(days), cols = totalCols();
   const todayIso = iso(now.getFullYear(),now.getMonth(),now.getDate());
   const nar = days.map(x => narrowDay(x, hol));
-  const colsCss = `112px ${days.map((x,i) => nar[i] ? "26px" : "minmax(0,1fr)").join(" ")} repeat(${cols.length}, ${cat==="presenze"||cat==="turnazione"?"34px":"38px"})`;
+  const colsCss = `112px ${days.map((x,i) => nar[i] ? "26px" : "minmax(0,1fr)").join(" ")} ${cols.length ? `repeat(${cols.length}, 38px)` : ""}`;
   $("matrix").style.setProperty("--cols", colsCss);
   /* numero della settimana, al centro dei suoi giorni */
   let html = `<div class="row wkrow"><div></div>`;
@@ -998,7 +1004,7 @@ function renderMatrix(){
     html += `<div class="wkl" style="grid-column:span ${n}">W${isoWeek(days[i].key)}</div>`;
     i += n;
   }
-  html += `<div style="grid-column:span ${cols.length}"></div></div>`;
+  html += (cols.length ? `<div style="grid-column:span ${cols.length}"></div>` : "") + `</div>`;
   html += `<div class="row head"><div class="hname">Dipendente</div>`;
   for(const x of days){
     const we = x.dow>4 || hol[x.key];
@@ -1013,9 +1019,18 @@ function renderMatrix(){
     const st = monthStats("presenze", p);
     const on = p===state.person;
     const nm = p.split(" "), last = nm.pop();
-    let subTxt = `${st.n} ${st.n===1?"Giorno":"Giorni"}`;
-    if(cat==="turnazione"){ const t = weekTurn(p); subTxt = t ? `W${isoWeek(toKey(new Date()))}: ${TNAME[t]}` : "nessun turno"; }
-    html += `<div class="row prow${on?" on":""}"><button class="pname" data-p="${esc(p)}"><span class="pn"><b>${esc(nm.join(" "))}<br>${esc(last)}</b><small>${subTxt}</small></span></button>`;
+    /* sotto il nome: giorni, ore e le altre voci del periodo (solo quelle presenti) */
+    let subTxt = `${st.n} ${st.n===1?"giorno":"giorni"}`, subMore = "";
+    if(cat==="presenze"){
+      const tot = summaryCols().map(c => ({c, v:c.v(p)}));
+      subTxt += `<br><span style="color:var(--c-pres)">${fmt(tot[0].v)} ore</span>`;
+      subMore = tot.slice(1).filter(t => t.v).map(t => `<span style="color:${t.c.color}">${t.c.label==="Str." ? "+"+fmt(t.v)+" str" : fmt(t.v)+" "+t.c.label.replace(".","").toLowerCase()}</span>`).join(" · ");
+    }
+    if(cat==="turnazione"){
+      subTxt = summaryCols().map(c => `<span style="color:${c.color}">${c.label} ${c.v(p) || "–"}</span>`).join(" · ");
+      const t = weekTurn(p); subMore = t ? `W${isoWeek(toKey(new Date()))}: ${TNAME[t]}` : "nessun turno";
+    }
+    html += `<div class="row prow${on?" on":""}"><button class="pname" data-p="${esc(p)}"><span class="pn"><b>${esc(nm.join(" "))}<br>${esc(last)}</b><small>${subTxt}</small>${subMore ? `<small class="pmore">${subMore}</small>` : ""}</span></button>`;
     days.forEach((x,i) => { html += cellHTML(p, nar[i] ? {...x, nar:true} : x, hol); });
     const weeks = (cat==="presenze" || cat==="turnazione") ? null : weeksOf(cat,p);
     cols.forEach((c,i) => {
