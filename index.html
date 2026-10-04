@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Gestione presenze manutenzione</title>
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#101317">
+<meta name="theme-color" content="#131922">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,13 +13,13 @@
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#101317; --surface:#171B21; --surface-2:#1C2027; --surface-3:#2A3039; --line:#242932; --line-2:#2E343E;
-  --text:#EDEFF2; --muted:#8C95A3; --muted-2:#A7AFBC;
+  --bg:#131922; --surface:#1A212C; --surface-2:#202835; --surface-3:#2F3A4A; --line:#29323F; --line-2:#344050;
+  --text:#EDEFF2; --muted:#8D99AC; --muted-2:#A9B3C3;
   --weekend:#FF3B4E; --weekend-ink:#FF8A95; --weekend-bg:#5C1424; --weekend-line:#A3233A;
   --s1:#1EB4FF; --s2:#00E08A; --sc:#FFC400; --s1l:#1EB4FF; --s2l:#00E08A; --sm:#9FB0C8; --c-turn:#B4C4FF;
   --c-pres:#00E676; --c-stra:#FFDD00; --c-ferie:#3D8BFF; --c-par:#00D0FF; --c-mal:#FF4545; --c-cigo:#D9822B; --c-vis:#14F0C8; --c-men:#FF9100;
-  --on-fill:#0F1216; --on-accent:#0F1216;
-  --today:#4ADE80; --faint:#6F7886; --btn-text:#CBD1DA; --cell-line:#20252C; --hover-line:#4A5260; --backdrop:rgba(0,0,0,.6);
+  --on-fill:#0F141B; --on-accent:#0F141B;
+  --today:#4ADE80; --faint:#6E7B8F; --btn-text:#CDD4DE; --cell-line:#242D39; --hover-line:#55627A; --backdrop:rgba(0,0,0,.6);
   --accent:var(--c-pres);
   --display:"Barlow Condensed","Arial Narrow",sans-serif;
   --body:"Barlow","Segoe UI",system-ui,sans-serif;
@@ -117,6 +117,7 @@ select.today,.jump{background:var(--surface);color:var(--text);font:inherit;font
 .th{white-space:nowrap;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:6px;font-size:10px;font-weight:700;line-height:1.1;text-align:center}
 .th small{font-size:9px;font-weight:500;color:var(--faint);white-space:nowrap}
 .prow{height:88px;border-radius:10px}
+.prow.alt{background:color-mix(in srgb,var(--text) 5.5%,transparent)}
 .prow.on{background:var(--surface);outline:1px solid var(--line-2)}
 .pname{display:flex;align-items:center;gap:10px;padding:0 2px 0 6px;border:0;background:transparent;text-align:left;cursor:pointer;min-width:0;border-radius:10px}
 .pname:hover .pn b{text-decoration:underline}
@@ -960,7 +961,7 @@ function renderMatrix(){
     const nm = p.split(" "), last = nm.pop();
     let subTxt = `${st.n} ${st.n===1?"Giorno":"Giorni"}`;
     if(cat==="turnazione"){ const t = weekTurn(p); subTxt = t ? `W${isoWeek(toKey(new Date()))}: ${TNAME[t]}` : "nessun turno"; }
-    html += `<div class="row prow${on?" on":""}"><button class="pname" data-p="${esc(p)}"><span class="pn"><b>${esc(nm.join(" "))}<br>${esc(last)}</b><small>${subTxt}</small></span></button>`;
+    html += `<div class="row prow${on?" on":""}${PEOPLE.indexOf(p)%2 ? " alt" : ""}"><button class="pname" data-p="${esc(p)}"><span class="pn"><b>${esc(nm.join(" "))}<br>${esc(last)}</b><small>${subTxt}</small></span></button>`;
     for(const x of days) html += cellHTML(p, x, hol);
     const weeks = (cat==="presenze" || cat==="turnazione") ? null : weeksOf(cat,p);
     cols.forEach((c,i) => {
@@ -2096,7 +2097,7 @@ function applyTheme(t){
   $("themeBtn").innerHTML = light ? MOON : SUN;
   $("themeBtn").title = light ? "Passa al tema scuro" : "Passa al tema chiaro";
   $("themeBtn").setAttribute("aria-label", light ? "Passa al tema scuro" : "Passa al tema chiaro");
-  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", light ? "#F3F5F8" : "#101317");
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", light ? "#F3F5F8" : "#131922");
 }
 $("themeBtn").onclick = () => { const t = document.documentElement.dataset.theme==="light" ? "dark" : "light"; lsSet(THEME_KEY, t); applyTheme(t); };
 applyTheme(lsGet(THEME_KEY) || "dark");
