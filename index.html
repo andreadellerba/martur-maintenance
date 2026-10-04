@@ -147,6 +147,18 @@ select.today,.jump{background:var(--surface);color:var(--text);font:inherit;font
 .cell .xs{font-size:8px;letter-spacing:.02em;opacity:.8}
 .cell .man{position:absolute;top:3px;right:3px;width:6px;height:6px;border-radius:50%;background:var(--text);box-shadow:0 0 0 2px var(--bg)}
 .cell.shift{background:var(--ac);border-color:transparent;color:var(--on-fill)}
+.cell.tfx{justify-content:flex-start;overflow:hidden;gap:0}
+.cell.tfx .tm{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+.cell.tfx .tm b{font-family:var(--display);font-size:14px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.cell.tfx .sep{width:14px;height:1.5px;background:currentColor;opacity:.45}
+.cell.tfx .band{width:100%;display:flex;flex-direction:column;background:var(--on-fill)}
+.cell.tfx .bx{font-family:var(--display);font-size:11px;font-weight:700;line-height:1;color:var(--mc);text-align:center;padding:3px 0;white-space:nowrap;border-top:1px solid var(--surface-2)}
+.cell.tfx .bx:first-child{border-top:0}
+.cell.tfx .fest{margin:3px 0 0}
+@media (max-width:1300px){.cell.tfx .tm b{font-size:12px}.cell.tfx .bx{font-size:10px}}
+.cell.lg.tfx .tm b,.wkv .cell.tfx .tm b{font-size:19px}
+.cell.lg.tfx .sep,.wkv .cell.tfx .sep{width:22px;height:2px}
+.cell.lg.tfx .bx,.wkv .cell.tfx .bx{font-size:12.5px;padding:3px 0}
 .cell.abs{background:transparent;border:1.5px solid var(--ac);color:var(--ac)}
 .cell.abs .t1{font-size:11px}
 .cell.abs .t2{font-size:11px;font-weight:600}
@@ -571,12 +583,15 @@ const hm = t => t.replace(/^0(?=\d)/,"");
 const mins = t => { const [h,m] = t.split(":").map(Number); return h*60+m; };
 const sid = v => v===true ? "P" : (typeof v==="object" ? v.t : v);
 const tshort = t => t.endsWith(":00") ? t.slice(0,-3) : t;
+/* orari sempre con i minuti: 7 -> 07:00, 5:30 -> 05:30 */
+const hhmm = t => t.includes(":") ? t.padStart(5,"0") : t.padStart(2,"0") + ":00";
+const fullRange = r => r.split("-").map(hhmm).join("-");
 /* orario del turno, es. 05:30-14 */
 function timeLabel(v){
   if(v===undefined) return "";
   const id = sid(v);
-  if(id==="M") return `${tshort(v.s)}-${tshort(v.e)}`;
-  return SHIFTS[id]?.time || "Presente";
+  if(id==="M") return `${hhmm(v.s)}-${hhmm(v.e)}`;
+  return SHIFTS[id] ? fullRange(SHIFTS[id].time) : "Presente";
 }
 /* assenza principale del giorno (quella con più ore) */
 const ABS = [
@@ -868,15 +883,21 @@ function cellHTML(p, x, hol, big){
       inner = `<span class="t1">${top}</span>${ap ? `<span class="ap">AP</span>` : ""}<span class="t2">${fmt(ah)}</span>`;
       aria += `, ${abs.map(y=>y.label+" "+fmt(y.hours)+" ore").join(", ")}`;
     } else if(v!==undefined){
+      /* turno: orario dalle/alle in alto, extra (assenze, straordinario, ore mancanti) nella fascia in basso */
       const id = sid(v), s = SHIFTS[id];
-      const [a,b] = id==="M" ? [tshort(v.s), tshort(v.e)] : (s ? s.time.split("-") : ["P",""]);
-      cls.push("shift"); style = `--ac:var(${s ? s.color : "--sm"})`;
-      inner = `<span class="t1${a.length>2?" sm":""}">${a}</span><span class="t2${b.length>2?" sm":""}">${b}</span>`;
-      if(abs.length) inner += `<span class="mk" style="--mc:var(${abs[0].color})">${abs[0].mk}${fmt(abs[0].hours)}</span>`;
+      const [a,b] = id==="M" ? [v.s, v.e] : (s ? s.time.split("-") : ["",""]);
+      cls.push("shift","tfx"); style = `--ac:var(${s ? s.color : "--sm"})`;
+      const band = abs.map(x => `<span class="bx" style="--mc:var(${x.color})">${x.short} ${fmt(x.hours)}H</span>`);
+      if(ot){ band.push(`<span class="bx" style="--mc:var(--c-stra)">+${fmt(ot)}H</span>`); aria += `, straordinario ${fmt(ot)} ore`; }
+      const miss = isWorkday(k) && covered(p,k)>0 && covered(p,k)<DAY_H ? DAY_H - covered(p,k) : 0;
+      if(miss){ band.push(`<span class="bx" style="--mc:var(--weekend)" title="Mancano ${fmt(miss)} ore">−${fmt(miss)}H</span>`); aria += `, mancano ${fmt(miss)} ore`; }
+      inner = `<span class="tm"><b>${hhmm(a)}</b><i class="sep"></i><b>${hhmm(b)}</b></span>` + (band.length ? `<span class="band">${band.join("")}</span>` : "");
       aria += `, turno ${timeLabel(v)}`;
     }
-    if(ot) { inner += `<span class="ot">${fmt(ot).length>3 ? fmt(ot) : "+"+fmt(ot)}</span>`; aria += `, straordinario ${fmt(ot)} ore`; }
-    if(isWorkday(k) && covered(p,k)>0 && covered(p,k)<DAY_H){ inner += `<span class="miss" title="Mancano ${fmt(DAY_H-covered(p,k))} ore"></span>`; aria += `, mancano ${fmt(DAY_H-covered(p,k))} ore`; }
+    if(!cls.includes("tfx")){
+      if(ot) { inner += `<span class="ot">${fmt(ot).length>3 ? fmt(ot) : "+"+fmt(ot)}</span>`; aria += `, straordinario ${fmt(ot)} ore`; }
+      if(isWorkday(k) && covered(p,k)>0 && covered(p,k)<DAY_H){ inner += `<span class="miss" title="Mancano ${fmt(DAY_H-covered(p,k))} ore"></span>`; aria += `, mancano ${fmt(DAY_H-covered(p,k))} ore`; }
+    }
   } else {
     if(cat==="ferie"){
       const f = ferF(p,k), pp = ferP(p,k);
@@ -1089,7 +1110,7 @@ const PRES_ORDER = ["1L","1","2","2L","C"];
 function shiftBtns(){
   const tu = state.cat==="turnazione";
   const list = tu ? ["1","2","C"] : PRES_ORDER;
-  return list.map((k,i) => `<button class="act" draggable="true" data-a="shift" data-s="${k}" style="--ac:var(${SHIFTS[k].color})" title="Clicca o trascina su una casella (tasto ${i+1})">${tu ? TNAME[k] : SHIFTS[k].time}</button>`).join("")
+  return list.map((k,i) => `<button class="act" draggable="true" data-a="shift" data-s="${k}" style="--ac:var(${SHIFTS[k].color})" title="Clicca o trascina su una casella (tasto ${i+1})">${tu ? TNAME[k] : fullRange(SHIFTS[k].time)}</button>`).join("")
     + (tu ? `<button class="act clear" draggable="true" data-a="shift" data-s="X" title="Toglie il turno (tasto 0)">Svuota</button>` : "");   /* in presenze c'è Svuota in fondo */
 }
 /* barra di presenze: stesso ordine per un giorno e per più caselle */
