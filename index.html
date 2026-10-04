@@ -64,7 +64,8 @@ button{font:inherit;color:inherit}
 .xls[disabled]{opacity:.6}
 
 /* barra mese + turni */
-.sub{min-height:68px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:16px;padding:8px 16px}
+.sub{min-height:68px;display:flex;justify-content:center;align-items:center;gap:16px;padding:8px 16px}
+#subbar #shiftbar,#subbar .sub-r{display:none!important}
 .mnav{display:flex;align-items:center;gap:10px}
 .mnav .arr{width:32px;height:32px;border:1px solid var(--line-2);border-radius:8px;background:transparent;font-size:16px;cursor:pointer}
 .mnav .arr:hover{background:var(--surface-2)}
@@ -461,8 +462,8 @@ body:not(.locked) .lock{display:none}
 
 <script>
 const CATS = [
-  {id:"presenze", label:"PRESENZE", hint:"Trascina un turno sulla casella, oppure sceglilo e clicca le caselle (tenendo premuto ne riempi più di una). Senza turno scelto, il clic seleziona il giorno. Tasti: 1–6 turni, 0 gomma, Esc nessun turno, Ctrl+Z annulla."},
-  {id:"turnazione", label:"TURNAZIONE", hint:"Turni previsti dalla rotazione settimanale (da lunedì 28 settembre 2026). Puoi cambiarli come in Presenze: trascina o scegli un turno e clicca. Con Copia nelle presenze li riporti nel calendario vero."},
+  {id:"presenze", label:"PRESENZE", hint:"Clicca una casella o trascina col mouse su più giorni e persone, poi scegli il turno o la voce nella barra qui sopra. Tasti: 1–5 turni, 6 orario manuale, 0 togli turno, Esc deseleziona, Ctrl+Z annulla."},
+  {id:"turnazione", label:"TURNAZIONE", hint:"Turni previsti dalla rotazione settimanale (da lunedì 28 settembre 2026). Per cambiarli seleziona le caselle e scegli il turno nella barra qui sopra (tasti 1, 2, 3, 0 per togliere). Con Copia nelle presenze li riporti nel calendario vero."},
   {id:"straordinario", label:"STRAORDINARIO", hint:"Lo straordinario dei turni si calcola da solo dalle presenze. Clicca una casella o trascina su più giorni per aggiungere ore in più a mano. A destra i totali per settimana e per mese."},
   {id:"ferie", label:"FERIE / PAR", hint:"Si compila da sola quando assegni le ore mancanti di una giornata. Clicca una casella o trascina su più giorni per inserire o correggere a mano."},
   {id:"malattia", label:"MALATTIA", hint:"Clicca una casella o trascina su più giorni, poi scegli le ore (8 h = giornata intera)."},
@@ -802,7 +803,7 @@ function renderTabs(){
 }
 function renderPalette(){
   const tu = state.cat==="turnazione", bar = $("shiftbar"), on = state.cat==="presenze" || tu;
-  bar.classList.toggle("off", !on);
+  bar.classList.toggle("off", !on); state.brush = null;   /* i turni si scelgono dalla barra in basso */
   $("fillBtn").hidden = !on;
   $("copyBtn").hidden = !tu;
   $("pdfBtn").hidden = !tu;
@@ -1046,6 +1047,13 @@ $("holForm").addEventListener("submit", () => {
 $("holClear").onclick = () => { const k = holKey; $("holDlg").close(); commit(() => { if(data.festivita) delete data.festivita[k]; }); };
 $("holCancel").onclick = () => $("holDlg").close();
 
+/* pulsanti dei turni nella barra in basso (presenze e turnazione) */
+function shiftBtns(){
+  const tu = state.cat==="turnazione";
+  const list = tu ? ["1","2","C"] : ["1","2","C","1L","2L"];
+  return list.map((k,i) => `<button class="act" data-a="shift" data-s="${k}" style="--ac:var(${SHIFTS[k].color})" title="Tasto ${i+1}">${tu ? TNAME[k] : SHIFTS[k].time}</button>`).join("")
+    + `<button class="act" data-a="shift" data-s="X" style="--ac:var(--weekend)" title="Tasto 0">Togli turno</button>`;
+}
 function renderDetail(){
   const el = $("detail"), s = state.sel;
   if(state.msel){
@@ -1053,9 +1061,9 @@ function renderDetail(){
     const d = k => { const [yy,mm,dd] = k.split("-").map(Number); return `${dd} ${MONTHS[mm-1].toLowerCase()}`; };
     const who = ps.length===1 ? esc(ps[0]) : `${ps.length} persone`;
     const acts = state.cat==="turnazione"
-      ? `<button class="act" data-a="reset">Ripristina rotazione</button>
+      ? `${shiftBtns()}<button class="act" data-a="reset">Ripristina rotazione</button>
          <button class="act" data-a="copyday" style="--ac:var(--c-pres)">Copia nelle presenze</button>`
-      : `<button class="act" data-a="time">Orario manuale</button>
+      : `${shiftBtns()}<button class="act" data-a="time">Orario manuale</button>
          <button class="act" data-a="malattia" style="--ac:var(--c-mal)">Malattia</button>
          <button class="act" data-a="ferie" style="--ac:var(--c-ferie)">Ferie / PAR</button>
          <button class="act" data-a="visita" style="--ac:var(--c-vis)">Visita medica</button>
@@ -1068,7 +1076,7 @@ function renderDetail(){
       <span class="dact">${acts}<button class="act" data-a="note">Commento</button><button class="act" data-a="unsel">Annulla selezione</button></span>`;
     return;
   }
-  if(!s){ el.innerHTML = `<span class="dnum empty">–</span><span class="dtxt"><b>Seleziona un giorno</b><small>Clicca una casella per vedere il dettaglio e inserire malattia, ferie, PAR, CIGO o straordinario. Trascinando col mouse selezioni più giorni e più persone insieme.</small></span>`; return; }
+  if(!s){ el.innerHTML = `<span class="dnum empty">–</span><span class="dtxt"><b>Seleziona un giorno</b><small>Clicca una casella o trascina col mouse su più giorni e più persone: qui sotto compaiono i turni e le altre voci da inserire.</small></span>` + (state.cat==="turnazione" ? `<span class="dact"><button class="act" data-a="copymonth" style="--ac:var(--c-pres)" title="Copia i turni previsti nelle presenze, solo nei giorni ancora vuoti">Copia ${state.span==="week" ? "la settimana" : "il mese"} nelle presenze</button></span>` : ""); return; }
   const {p, k} = s, [yy,mm,dd] = k.split("-").map(Number), dow = (new Date(yy,mm-1,dd).getDay()+6)%7;
   if(state.cat==="turnazione"){
     const v = turnOf(p,k), pl = planned(p,k), man = get("turnazione",p,k)!==undefined;
@@ -1077,6 +1085,7 @@ function renderDetail(){
     el.innerHTML = `<span class="dnum" style="--ac:${v ? `var(${SHIFTS[v].color})` : "var(--surface-3)"}">${dd}</span>
       <span class="dtxt"><b>${esc(p)}, ${WDN[dow]} ${dd} ${MONTHS[mm-1].toLowerCase()}</b><small>${txt.join(", ")}</small></span>
       <span class="dact">
+        ${shiftBtns()}
         ${man ? `<button class="act" data-a="reset">Ripristina rotazione</button>` : ""}
         ${holBtn(k)}
         ${noteBtn(p,k)}
@@ -1096,6 +1105,7 @@ function renderDetail(){
   el.innerHTML = `<span class="dnum" style="--ac:${color}">${dd}</span>
     <span class="dtxt"><b>${esc(p)}, ${WDN[dow]} ${dd} ${MONTHS[mm-1].toLowerCase()}${hol?` (${hol})`:""}</b><small>${parts.join(", ")}</small></span>
     <span class="dact">
+      ${shiftBtns()}
       <button class="act" data-a="time">Orario manuale</button>
       ${holBtn(k)}
       ${noteBtn(p,k)}
@@ -1338,11 +1348,25 @@ $("matrix").addEventListener("drop", e => {
   commit(() => setShift(p, key, s==="X" ? null : s));
 });
 
+/* mette (o toglie) un turno nelle caselle selezionate; con più caselle solo nei giorni lavorativi */
+function applyShift(s){
+  const v = s==="X" ? null : s;
+  if(state.msel){
+    const ps = state.msel.pairs.filter(x => v===null || isWorkday(x.k));
+    commit(() => { ps.forEach(({p,k}) => setShift(p, k, v)); state.msel = null; });
+    return;
+  }
+  if(!state.sel) return;
+  const {p,k} = state.sel;
+  commit(() => setShift(p, k, v));
+}
 /* barra del giorno selezionato (o delle caselle selezionate) */
 const ALLCATS = ["presenze","straordinario","ferie","malattia","cigo","visita","mensa","note"];
 $("detail").addEventListener("click", e => {
   const b = e.target.closest(".act"); if(!b) return;
   const a = b.dataset.a;
+  if(a==="copymonth") return $("copyBtn").onclick();
+  if(a==="shift") return applyShift(b.dataset.s);
   if(state.msel){
     const pairs = state.msel.pairs, work = pairs.filter(x => isWorkday(x.k));
     if(a==="unsel"){ state.msel = null; render(); return; }
@@ -1372,9 +1396,11 @@ document.addEventListener("keydown", e => {
   if((e.ctrlKey||e.metaKey) && !e.shiftKey && e.key.toLowerCase()==="z"){ e.preventDefault(); undo(); return; }
   if(!["presenze","turnazione"].includes(state.cat) || e.ctrlKey || e.metaKey || e.altKey) return;
   if(e.target.closest && e.target.closest("input,textarea")) return;
-  if(e.key==="Escape"){ state.brush = null; state.msel = null; render(); return; }
+  if(e.key==="Escape"){ state.msel = null; state.sel = null; render(); return; }
   const map = state.cat==="turnazione" ? {"1":"1","2":"2","3":"C","0":"X"} : {"1":"1","2":"2","3":"C","4":"1L","5":"2L","6":"M","0":"X"};
-  if(map[e.key]){ state.brush = map[e.key]; render(); }
+  if(!map[e.key] || (!state.sel && !state.msel)) return;
+  if(map[e.key]==="M"){ if(state.msel){ const w = state.msel.pairs.filter(x => isWorkday(x.k)); if(w.length) openTimeMulti(w); } else openTime(state.sel.k); return; }
+  applyShift(map[e.key]);
 });
 
 let editing = null, dlgMode = null, ferieType = "f", ferieYear = null, ferieCig = false;
