@@ -102,6 +102,13 @@ select.today,.jump{background:var(--surface);color:var(--text);font:inherit;font
 .dh{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:4px;border-radius:6px;color:var(--muted-2);line-height:1.05}
 .dh span{font-size:10px;font-weight:600;opacity:.8}
 .dh b{font-family:var(--display);font-size:17px}
+.dh.nar span{font-size:9px}
+.dh.nar em{padding:0 3px}
+.matrix .cell.nar .fest::before{content:"F"}
+.cell.nar .fest{padding:1px 3px}
+.cell.nar.lg .hn{display:none}
+.cell.nar.lg.hol::after{content:"F";position:absolute;top:32px;left:50%;transform:translateX(-50%);font-family:var(--body);font-size:11px;font-weight:800;padding:1px 5px;border-radius:3px;background:var(--weekend);color:var(--bg)}
+.cell.nar.lg .dn{left:50%;transform:translateX(-50%)}
 .dh.we{color:var(--weekend-ink);background:var(--weekend-bg)}
 .dh em{font-style:normal;font-size:8px;font-weight:800;letter-spacing:.02em;padding:0 2px;margin-bottom:2px;border-radius:3px;background:var(--weekend);color:var(--bg)}
 .cell .fest{font-family:var(--body);font-size:7.5px;font-weight:800;letter-spacing:.02em;white-space:nowrap;max-width:100%;overflow:hidden;padding:1px 2px;margin-bottom:2px;border-radius:3px;background:var(--weekend);color:var(--bg)}
@@ -839,6 +846,7 @@ function cellHTML(p, x, hol, big){
   const k = x.key, we = x.dow>4 || !!hol[k], sel = state.sel && state.sel.p===p && state.sel.k===k;
   const cls = ["cell"]; if(we) cls.push("we"); if(sel) cls.push("sel");
   if(state.msel && state.msel.set.has(p+"|"+k)) cls.push("rng");
+  if(x.nar) cls.push("nar");
   let style = "", inner = "", aria = `${p}, ${x.d} ${MONTHS[state.m]}`;
   const cat = state.cat;
   if(cat==="turnazione"){
@@ -909,16 +917,17 @@ function renderViewbar(){
 function renderSingle(p){
   const {cat} = state, days = viewDays(), hol = holMap(days);
   const off = state.span==="week" ? 0 : (new Date(state.y,state.m,1).getDay()+6)%7, rows = Math.ceil((off+days.length)/7);
+  const weNar = days.filter(x => x.dow>4).every(x => !dayHasData(p, x.key));
   const nm = p.split(" "), last = nm.pop();
   let html = `<div class="s-head"><span><b>${esc(nm.join(" "))} ${esc(last)}</b><small>${viewTitle()}</small></span></div>`;
-  html += `<div class="single">` + ["LUN","MAR","MER","GIO","VEN","SAB","DOM"].map((w,i) => `<div class="s-wd${i>4?" we":""}">${w}</div>`).join("") + `<div class="s-wd">SETT.</div>`;
+  html += `<div class="single"${weNar ? ` style="grid-template-columns:repeat(5,minmax(0,1fr)) 46px 46px 110px"` : ""}>` + ["LUN","MAR","MER","GIO","VEN","SAB","DOM"].map((w,i) => `<div class="s-wd${i>4?" we":""}">${weNar && i>4 ? w[0] : w}</div>`).join("") + `<div class="s-wd">SETT.</div>`;
   for(let r=0; r<rows; r++){
     const wk = [];
     for(let c=0; c<7; c++){
       const i = r*7 + c - off;
       if(i<0 || i>=days.length){ html += `<div class="s-empty"></div>`; continue; }
       wk.push(days[i].key);
-      html += cellHTML(p, days[i], hol, true);
+      html += cellHTML(p, weNar && days[i].dow>4 ? {...days[i], nar:true} : days[i], hol, true);
     }
     let main = "", sub = "";
     if(cat==="turnazione"){ const t = wk.map(k => turnOf(p,k)).find(Boolean); main = t ? TNAME[t] : "–"; }
@@ -941,13 +950,23 @@ function renderSingle(p){
   $("matrix").innerHTML = html;
   $("matrix").classList.add("one");
 }
+/* sabati, domeniche e festivi senza niente inserito: colonna stretta (resta solo il numero) */
+function dayHasData(p, k){
+  const cat = state.cat;
+  if(cat==="turnazione") return !!turnOf(p,k) || !!noteOf(p,k);
+  if(cat==="presenze") return ["presenze","straordinario","ferie","malattia","cigo","visita","mensa","note"].some(c => get(c,p,k)!==undefined);
+  if(cat==="ferie") return hoursOf("ferie",p,k)>0 || visH(p,k)>0;
+  return hoursOf(cat,p,k)>0;
+}
+const narrowDay = (x, hol, ps = PEOPLE) => (x.dow>4 || !!hol[x.key]) && !ps.some(p => dayHasData(p, x.key));
 function renderMatrix(){
   if(state.view){ renderSingle(state.view); return; }
   $("matrix").classList.remove("one");
   $("matrix").classList.toggle("wkv", state.span==="week");
   const {cat} = state, days = viewDays(), hol = holMap(days), cols = totalCols();
   const todayIso = iso(now.getFullYear(),now.getMonth(),now.getDate());
-  const colsCss = `112px repeat(${days.length}, minmax(0,1fr)) repeat(${cols.length}, ${cat==="presenze"||cat==="turnazione"?"34px":"38px"})`;
+  const nar = days.map(x => narrowDay(x, hol));
+  const colsCss = `112px ${days.map((x,i) => nar[i] ? "26px" : "minmax(0,1fr)").join(" ")} repeat(${cols.length}, ${cat==="presenze"||cat==="turnazione"?"34px":"38px"})`;
   $("matrix").style.setProperty("--cols", colsCss);
   /* numero della settimana, al centro dei suoi giorni */
   let html = `<div class="row wkrow"><div></div>`;
@@ -960,7 +979,8 @@ function renderMatrix(){
   html += `<div class="row head"><div class="hname">Dipendente</div>`;
   for(const x of days){
     const we = x.dow>4 || hol[x.key];
-    html += `<div class="dh${we?" we":""}${hol[x.key]?" hol":""}${x.key===todayIso?" now":""}" title="${hol[x.key]||""}">${hol[x.key] && cat!=="turnazione" ? `<em>FEST</em>` : ""}<span>${WDL[x.dow]}</span><b>${x.d}</b></div>`;
+    const nr = nar[days.indexOf(x)];
+    html += `<div class="dh${we?" we":""}${hol[x.key]?" hol":""}${nr?" nar":""}${x.key===todayIso?" now":""}" title="${hol[x.key]||""}">${hol[x.key] && cat!=="turnazione" ? `<em>${nr ? "F" : "FEST"}</em>` : ""}<span>${WDL[x.dow]}</span><b>${x.d}</b></div>`;
   }
   for(const c of cols) html += `<div class="th" style="color:${c.color}">${c.label}${c.small?`<small>${c.small}</small>`:""}</div>`;
   html += `</div>`;
@@ -973,7 +993,7 @@ function renderMatrix(){
     let subTxt = `${st.n} ${st.n===1?"Giorno":"Giorni"}`;
     if(cat==="turnazione"){ const t = weekTurn(p); subTxt = t ? `W${isoWeek(toKey(new Date()))}: ${TNAME[t]}` : "nessun turno"; }
     html += `<div class="row prow${on?" on":""}"><button class="pname" data-p="${esc(p)}"><span class="pn"><b>${esc(nm.join(" "))}<br>${esc(last)}</b><small>${subTxt}</small></span></button>`;
-    for(const x of days) html += cellHTML(p, x, hol);
+    days.forEach((x,i) => { html += cellHTML(p, nar[i] ? {...x, nar:true} : x, hol); });
     const weeks = (cat==="presenze" || cat==="turnazione") ? null : weeksOf(cat,p);
     cols.forEach((c,i) => {
       let txt;
