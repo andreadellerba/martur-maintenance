@@ -156,7 +156,12 @@ select.today,.jump{background:var(--surface);color:var(--text);font:inherit;font
 .cell.lg .stk b.n,.wkv .cell .stk b.n{font-size:24px}
 .cell.lg .stk b.m,.wkv .cell .stk b.m{font-size:16px}
 .cell.holfill{background:var(--weekend);border-color:var(--weekend)}
-.cell.holfill .fest{background:var(--on-fill);color:var(--weekend)}
+.cell .hf{font-family:var(--display);font-size:22px;font-weight:800;line-height:1;color:var(--on-fill)}
+.cell.lg .hf,.wkv .cell .hf{font-size:34px}
+.cell.holfill .hn{background:transparent;color:var(--on-fill)}
+.cell.nar.lg.hol::after{display:none}
+.dh.hol,.dh.hol.now{background:var(--weekend);color:var(--on-fill);box-shadow:none}
+.dh.hol span{opacity:1}
 .cell.holfill .dn{color:var(--on-fill)!important}
 .cell .missc{position:absolute;top:3px;left:50%;transform:translateX(-50%);width:10px;height:10px;border-radius:50%;background:var(--weekend);border:2px solid #000;box-sizing:border-box;z-index:1}
 .cell.lg .missc{width:13px;height:13px;top:6px}
@@ -930,8 +935,8 @@ function cellHTML(p, x, hol, big){
       if(parts.length){
         cls.push("val"); style = `--ac:var(${parts[0][2]})`;
         inner = parts.length===1
-          ? stk([["+"], [fmt(parts[0][1]), "n"], [parts[0][0]], ["ORE"]])
-          : stk([["+"], ...parts.map(x => [`${fmt(x[1])} ${x[0]}`, "m"]), ["ORE"]]);
+          ? stk([["+"], [parts[0][0]], [fmt(parts[0][1]), "n"], ["ORE"]])
+          : stk([["+"], ...parts.map(x => [`${x[0]} ${fmt(x[1])}`, "m"]), ["ORE"]]);
         aria += `, ${parts.map(x => `${x[0]} ${fmt(x[1])} ore`).join(", ")}`;
       }
     } else {
@@ -939,15 +944,18 @@ function cellHTML(p, x, hol, big){
       if(h>0){
         cls.push("val"); style = `--ac:${CATCOL[cat]}`;
         const lab = cat==="malattia" ? "MAL" + (malE(p,k).a==="AP" ? " AP" : "") : cat==="cigo" ? "CIGO" : "";
-        inner = stk([["+"], [fmt(h), "n"], ...(lab ? [[lab]] : []), ["ORE"]]);
+        inner = stk([["+"], ...(lab ? [[lab]] : []), [fmt(h), "n"], ["ORE"]]);
         aria += `, ${fmt(h)} ore`;
       }
     }
   }
-  /* festivo: "FEST" resta anche se ci metti un turno, e prende il colore della casella */
-  if(hol[k]){ cls.push("hol"); aria += `, festivo (${hol[k]})`; if(!big) inner = `<span class="fest" title="${hol[k]}"></span>` + inner; }
-  /* festivo senza niente inserito: casella tutta rossa */
-  if(hol[k] && !cls.some(c => c==="shift" || c==="val" || c==="abs")) cls.push("holfill");
+  /* festivo: casella vuota tutta rossa con una F grande; se c'è un turno o una voce resta la scritta FEST */
+  const filled = cls.some(c => c==="shift" || c==="val" || c==="abs");
+  if(hol[k]){
+    cls.push("hol"); aria += `, festivo (${hol[k]})`;
+    if(!filled){ cls.push("holfill"); inner = `<span class="hf" title="${hol[k]}">F</span>` + inner; }
+    else if(!big) inner = `<span class="fest" title="${hol[k]}"></span>` + inner;
+  }
   if(hasNote(p,k)) inner += `<span class="star" aria-hidden="true">*</span>`;
   if(big){ cls.push("lg"); inner = `<span class="dn">${x.d}</span>` + (hol[k] ? `<span class="fest hn">FEST · ${hol[k]}</span>` : "") + inner; }
   return `<button class="${cls.join(" ")}" data-p="${esc(p)}" data-date="${k}" style="${style}" aria-label="${esc(aria)}">${inner}</button>`;
@@ -1026,7 +1034,7 @@ function renderMatrix(){
   for(const x of days){
     const we = x.dow>4 || hol[x.key];
     const nr = nar[days.indexOf(x)];
-    html += `<div class="dh${we?" we":""}${hol[x.key]?" hol":""}${nr?" nar":""}${x.key===todayIso?" now":""}" title="${hol[x.key]||""}">${hol[x.key] && cat!=="turnazione" ? `<em>${nr ? "F" : "FEST"}</em>` : ""}<span>${WDL[x.dow]}</span><b>${x.d}</b></div>`;
+    html += `<div class="dh${we?" we":""}${hol[x.key]?" hol":""}${nr?" nar":""}${x.key===todayIso?" now":""}" title="${hol[x.key]||""}"><span>${WDL[x.dow]}</span><b>${x.d}</b></div>`;
   }
   for(const c of cols) html += `<div class="th" style="color:${c.color}">${c.label}${c.small?`<small>${c.small}</small>`:""}</div>`;
   html += `</div>`;
