@@ -64,7 +64,7 @@ button{font:inherit;color:inherit}
 .xls[disabled]{opacity:.6}
 
 /* barra mese + turni */
-.sub{min-height:68px;display:flex;justify-content:center;align-items:center;gap:16px;padding:8px 16px}
+.sub{min-height:68px;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:12px 28px;padding:8px 16px}
 #subbar #shiftbar,#subbar .sub-r{display:none!important}
 .mnav{display:flex;align-items:center;gap:10px}
 .mnav .arr{width:32px;height:32px;border:1px solid var(--line-2);border-radius:8px;background:transparent;font-size:16px;cursor:pointer}
@@ -84,6 +84,8 @@ select.today,.jump{background:var(--surface);color:var(--text);font:inherit;font
 .chip.erase{--chipc:var(--weekend);color:var(--weekend)}
 .chip.erase .sw{background:transparent;border:2px solid var(--weekend)}
 .chip.dragging{opacity:.5}
+.act.dragging{opacity:.5}
+.act[draggable]{cursor:grab}
 .sub-r{display:flex;justify-content:flex-end;gap:8px}
 .fill{height:32px;padding:0 12px;border:1px dashed var(--hover-line);border-radius:8px;background:transparent;color:var(--btn-text);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
 .fill:hover:not([disabled]){border-style:solid}
@@ -116,7 +118,7 @@ select.today,.jump{background:var(--surface);color:var(--text);font:inherit;font
 .th small{font-size:10px;font-weight:500;color:var(--faint);white-space:nowrap}
 .prow{height:88px;border-radius:10px}
 .prow.on{background:var(--surface);outline:1px solid var(--line-2)}
-.pname{display:flex;align-items:center;gap:10px;padding:0 4px 0 10px;border:0;background:transparent;text-align:left;cursor:pointer;min-width:0;border-radius:10px}
+.pname{display:flex;align-items:center;gap:10px;padding:0 2px 0 6px;border:0;background:transparent;text-align:left;cursor:pointer;min-width:0;border-radius:10px}
 .pname:hover .pn b{text-decoration:underline}
 .av{width:34px;height:34px;flex-shrink:0;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;background:var(--surface-3);color:var(--text)}
 .prow.on .pn b{color:var(--accent)}
@@ -157,14 +159,14 @@ select.today,.jump{background:var(--surface);color:var(--text);font:inherit;font
 .tc.total{background:transparent;font-size:12.5px}
 
 /* dettaglio del giorno */
-.detail{margin:16px 16px 0;display:flex;align-items:center;gap:16px;padding:14px 18px;background:var(--surface);border:1px solid var(--line);border-radius:14px;flex-wrap:wrap}
+.detail{margin:0 16px 12px;display:flex;align-items:center;gap:16px;padding:14px 18px;background:var(--surface);border:1px solid var(--line);border-radius:14px;flex-wrap:wrap}
 .dnum{--ac:var(--surface-3);width:44px;height:44px;border-radius:10px;background:var(--ac);color:var(--on-fill);display:grid;place-items:center;font-family:var(--display);font-size:22px;font-weight:700;flex-shrink:0}
 .dnum.empty{color:var(--muted)}
 .dtxt{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 280px}
 .dtxt b{font-size:15px}
 .dtxt small{font-size:13px;color:var(--muted)}
-.dact{display:flex;gap:8px;flex-wrap:wrap}
-.act{--ac:var(--btn-text);height:36px;padding:0 14px;border:1px solid color-mix(in srgb,var(--ac) 45%,transparent);border-radius:10px;background:transparent;color:var(--ac);font-size:13px;font-weight:600;cursor:pointer}
+.dact{display:flex;gap:6px;flex-wrap:wrap}
+.act{--ac:var(--btn-text);height:36px;padding:0 10px;white-space:nowrap;border:1px solid color-mix(in srgb,var(--ac) 45%,transparent);border-radius:10px;background:transparent;color:var(--ac);font-size:13px;font-weight:600;cursor:pointer}
 .act:hover{background:color-mix(in srgb,var(--ac) 12%,transparent)}
 .act.clear{--ac:var(--weekend)}
 .hint{margin:12px 24px 24px;text-align:center;color:var(--faint);font-size:13px}
@@ -232,7 +234,7 @@ body:not(.locked) .lock{display:none}
 :root[data-theme="light"] .logo-l{display:block}
 @media (max-width:1360px){.logo{height:15px}.hdr-r .lbl{display:none}.pill{padding:8px 9px;font-size:12px}.hdr{gap:8px}}
 /* vista */
-.viewbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:0 16px 10px}
+.viewbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 .vb-l{font-size:12px;font-weight:700;color:var(--faint);margin-right:4px;letter-spacing:.04em;text-transform:uppercase}
 .vb{height:30px;padding:0 12px;border:1px solid var(--line-2);border-radius:999px;background:transparent;color:var(--btn-text);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
 .vb:hover{background:var(--surface-2)}
@@ -367,16 +369,17 @@ body:not(.locked) .lock{display:none}
     <input class="today jump" id="jumpM" type="month" aria-label="Vai al mese" title="Vai a un mese qualsiasi">
     <input class="today jump" id="jumpW" type="week" aria-label="Vai alla settimana" title="Vai a una settimana qualsiasi" hidden>
   </div>
+  <div class="viewbar" id="viewbar" role="group" aria-label="Vista del calendario"></div>
   <div class="palette" id="shiftbar" role="toolbar" aria-label="Turno da inserire"></div>
   <div class="sub-r"><button class="fill" id="copyBtn" hidden title="Copia i turni previsti del mese nelle presenze, solo nei giorni ancora vuoti">Copia nelle presenze</button><button class="fill" id="fillBtn">Riempi lun–ven</button></div>
 </div>
 
 <section class="report" id="report" hidden aria-label="Report"></section>
-<div class="viewbar" id="viewbar" role="group" aria-label="Vista del calendario"></div>
+<div class="detail" id="detail" aria-live="polite"></div>
 <section class="board" id="board" aria-label="Calendario del reparto">
   <div class="matrix" id="matrix"></div>
 </section>
-<div class="detail" id="detail" aria-live="polite"></div>
+
 <p class="msg" id="msg" role="status" hidden></p>
 <p class="hint" id="hint"></p>
 <aside class="install" id="install" hidden role="dialog" aria-labelledby="installTitle">
@@ -667,7 +670,7 @@ function viewTitle(){
   if(state.span!=="week") return `${MONTHS[state.m]} ${state.y}`;
   const a = keyDate(state.wk), b = keyDate(addDays(state.wk, 6));
   const da = a.getMonth()===b.getMonth() ? a.getDate() : `${a.getDate()} ${MONTHS[a.getMonth()].slice(0,3).toLowerCase()}`;
-  return `W${isoWeek(state.wk)} · ${da}–${b.getDate()} ${MONTHS[b.getMonth()].toLowerCase()} ${b.getFullYear()}`;
+  return `Week ${isoWeek(state.wk)}`;
 }
 /* "2026-W41" <-> lunedì di quella settimana */
 function weekInput(k){ const t = keyDate(addDays(k, 3)); return `${t.getFullYear()}-W${String(isoWeek(k)).padStart(2,"0")}`; }
@@ -932,7 +935,7 @@ function renderMatrix(){
   $("matrix").classList.toggle("wkv", state.span==="week");
   const {cat} = state, days = viewDays(), hol = holMap(days), cols = totalCols();
   const todayIso = iso(now.getFullYear(),now.getMonth(),now.getDate());
-  const colsCss = `132px repeat(${days.length}, minmax(0,1fr)) repeat(${cols.length}, ${cat==="presenze"||cat==="turnazione"?"42px":"46px"})`;
+  const colsCss = `112px repeat(${days.length}, minmax(0,1fr)) repeat(${cols.length}, ${cat==="presenze"||cat==="turnazione"?"42px":"46px"})`;
   $("matrix").style.setProperty("--cols", colsCss);
   /* numero della settimana, al centro dei suoi giorni */
   let html = `<div class="row wkrow"><div></div>`;
@@ -1047,12 +1050,28 @@ $("holForm").addEventListener("submit", () => {
 $("holClear").onclick = () => { const k = holKey; $("holDlg").close(); commit(() => { if(data.festivita) delete data.festivita[k]; }); };
 $("holCancel").onclick = () => $("holDlg").close();
 
-/* pulsanti dei turni nella barra in basso (presenze e turnazione) */
+/* pulsanti dei turni nella barra (presenze e turnazione): si cliccano o si trascinano sulle caselle */
+const PRES_ORDER = ["1L","1","2","2L","C"];
 function shiftBtns(){
   const tu = state.cat==="turnazione";
-  const list = tu ? ["1","2","C"] : ["1","2","C","1L","2L"];
-  return list.map((k,i) => `<button class="act" data-a="shift" data-s="${k}" style="--ac:var(${SHIFTS[k].color})" title="Tasto ${i+1}">${tu ? TNAME[k] : SHIFTS[k].time}</button>`).join("")
-    + `<button class="act" data-a="shift" data-s="X" style="--ac:var(--weekend)" title="Tasto 0">Togli turno</button>`;
+  const list = tu ? ["1","2","C"] : PRES_ORDER;
+  return list.map((k,i) => `<button class="act" draggable="true" data-a="shift" data-s="${k}" style="--ac:var(${SHIFTS[k].color})" title="Clicca o trascina su una casella (tasto ${i+1})">${tu ? TNAME[k] : SHIFTS[k].time}</button>`).join("")
+    + `<button class="act" draggable="true" data-a="shift" data-s="X" style="--ac:var(--weekend)" title="Toglie solo il turno, il resto del giorno resta (tasto 0)">Togli turno</button>`;
+}
+/* barra di presenze: stesso ordine per un giorno e per più caselle */
+function presBtns(p, k){
+  const one = p!==null;
+  return `${shiftBtns()}
+    <button class="act" draggable="true" data-a="time" data-s="M" title="Clicca o trascina su una casella (tasto 6)">Orario manuale</button>
+    <button class="act" data-a="ferie" style="--ac:var(--c-ferie)">Ferie / PAR</button>
+    <button class="act" data-a="malattia" style="--ac:var(--c-mal)">Malattia</button>
+    <button class="act" data-a="straordinario" style="--ac:var(--c-stra)">Straordinario</button>
+    <button class="act" data-a="cigo" style="--ac:var(--c-cigo)">CIGO</button>
+    <button class="act" data-a="visita" style="--ac:var(--c-vis)">Visita medica</button>
+    <button class="act" data-a="mensa" style="--ac:var(--c-men)">Pausa mensa</button>
+    ${one ? holBtn(k) : ""}
+    ${one ? noteBtn(p,k) : `<button class="act" data-a="note">Commento</button>`}
+    <button class="act clear" data-a="clear" title="Toglie tutto: turno, assenze, straordinario e commento">Svuota</button>`;
 }
 function renderDetail(){
   const el = $("detail"), s = state.sel;
@@ -1062,18 +1081,11 @@ function renderDetail(){
     const who = ps.length===1 ? esc(ps[0]) : `${ps.length} persone`;
     const acts = state.cat==="turnazione"
       ? `${shiftBtns()}<button class="act" data-a="reset">Ripristina rotazione</button>
-         <button class="act" data-a="copyday" style="--ac:var(--c-pres)">Copia nelle presenze</button>`
-      : `${shiftBtns()}<button class="act" data-a="time">Orario manuale</button>
-         <button class="act" data-a="malattia" style="--ac:var(--c-mal)">Malattia</button>
-         <button class="act" data-a="ferie" style="--ac:var(--c-ferie)">Ferie / PAR</button>
-         <button class="act" data-a="visita" style="--ac:var(--c-vis)">Visita medica</button>
-         <button class="act" data-a="mensa" style="--ac:var(--c-men)">Pausa mensa</button>
-         <button class="act" data-a="cigo" style="--ac:var(--c-cigo)">CIGO</button>
-         <button class="act" data-a="straordinario" style="--ac:var(--c-stra)">Straordinario</button>
-         <button class="act clear" data-a="clear" aria-label="Svuota i giorni selezionati">Svuota</button>`;
+         <button class="act" data-a="copyday" style="--ac:var(--c-pres)">Copia nelle presenze</button><button class="act" data-a="note">Commento</button>`
+      : presBtns(null, null);
     el.innerHTML = `<span class="dnum" style="--ac:var(--accent)">${pairs.length}</span>
       <span class="dtxt"><b>${who}, ${ks.length} ${ks.length===1 ? "giorno" : "giorni"} (dal ${d(ks[0])} al ${d(ks[ks.length-1])})</b><small>Quello che scegli vale per tutte le caselle selezionate (ferie, malattia e simili solo nei giorni lavorativi). Clicca una casella per togliere la selezione.</small></span>
-      <span class="dact">${acts}<button class="act" data-a="note">Commento</button><button class="act" data-a="unsel">Annulla selezione</button></span>`;
+      <span class="dact">${acts}<button class="act" data-a="unsel">Annulla selezione</button></span>`;
     return;
   }
   if(!s){ el.innerHTML = `<span class="dnum empty">–</span><span class="dtxt"><b>Seleziona un giorno</b><small>Clicca una casella o trascina col mouse su più giorni e più persone: qui sotto compaiono i turni e le altre voci da inserire.</small></span>` + (state.cat==="turnazione" ? `<span class="dact"><button class="act" data-a="copymonth" style="--ac:var(--c-pres)" title="Copia i turni previsti nelle presenze, solo nei giorni ancora vuoti">Copia ${state.span==="week" ? "la settimana" : "il mese"} nelle presenze</button></span>` : ""); return; }
@@ -1105,17 +1117,7 @@ function renderDetail(){
   el.innerHTML = `<span class="dnum" style="--ac:${color}">${dd}</span>
     <span class="dtxt"><b>${esc(p)}, ${WDN[dow]} ${dd} ${MONTHS[mm-1].toLowerCase()}${hol?` (${hol})`:""}</b><small>${parts.join(", ")}</small></span>
     <span class="dact">
-      ${shiftBtns()}
-      <button class="act" data-a="time">Orario manuale</button>
-      ${holBtn(k)}
-      ${noteBtn(p,k)}
-      <button class="act" data-a="malattia" style="--ac:var(--c-mal)">Malattia</button>
-      <button class="act" data-a="ferie" style="--ac:var(--c-ferie)">Ferie / PAR</button>
-      <button class="act" data-a="visita" style="--ac:var(--c-vis)">Visita medica</button>
-      <button class="act" data-a="mensa" style="--ac:var(--c-men)">Pausa mensa</button>
-      <button class="act" data-a="cigo" style="--ac:var(--c-cigo)">CIGO</button>
-      <button class="act" data-a="straordinario" style="--ac:var(--c-stra)">Straordinario</button>
-      <button class="act clear" data-a="clear" aria-label="Svuota il giorno">Svuota</button>
+      ${presBtns(p, k)}
     </span>`;
 }
 
@@ -1342,11 +1344,25 @@ $("matrix").addEventListener("dragleave", e => {
 $("matrix").addEventListener("drop", e => {
   const c = e.target.closest(".cell"); if(!c || !dragShift) return;
   e.preventDefault();
-  const p = c.dataset.p, key = c.dataset.date, s = dragShift; dragShift = null;
-  selectCell(p, key);
+  const p = c.dataset.p, key = c.dataset.date, s = dragShift; dragShift = null; clearDrop();
+  /* lasciato su una casella selezionata: vale per tutta la selezione */
+  if(state.msel && state.msel.set.has(p+"|"+key)){
+    if(s==="M"){ const w = state.msel.pairs.filter(x => isWorkday(x.k)); if(w.length) openTimeMulti(w); return; }
+    return applyShift(s);
+  }
+  state.msel = null; selectCell(p, key);
   if(s==="M"){ render(); openTime(key); return; }
   commit(() => setShift(p, key, s==="X" ? null : s));
 });
+/* trascina un turno dai pulsanti della barra */
+$("detail").addEventListener("dragstart", e => {
+  const b = e.target.closest(".act[draggable]"); if(!b) return;
+  dragShift = b.dataset.s;
+  e.dataTransfer.effectAllowed = "copy";
+  e.dataTransfer.setData("text/plain", dragShift);
+  b.classList.add("dragging");
+});
+$("detail").addEventListener("dragend", e => { e.target.closest(".act")?.classList.remove("dragging"); dragShift = null; clearDrop(); });
 
 /* mette (o toglie) un turno nelle caselle selezionate; con più caselle solo nei giorni lavorativi */
 function applyShift(s){
@@ -1397,7 +1413,7 @@ document.addEventListener("keydown", e => {
   if(!["presenze","turnazione"].includes(state.cat) || e.ctrlKey || e.metaKey || e.altKey) return;
   if(e.target.closest && e.target.closest("input,textarea")) return;
   if(e.key==="Escape"){ state.msel = null; state.sel = null; render(); return; }
-  const map = state.cat==="turnazione" ? {"1":"1","2":"2","3":"C","0":"X"} : {"1":"1","2":"2","3":"C","4":"1L","5":"2L","6":"M","0":"X"};
+  const map = state.cat==="turnazione" ? {"1":"1","2":"2","3":"C","0":"X"} : {"1":"1L","2":"1","3":"2","4":"2L","5":"C","6":"M","0":"X"};
   if(!map[e.key] || (!state.sel && !state.msel)) return;
   if(map[e.key]==="M"){ if(state.msel){ const w = state.msel.pairs.filter(x => isWorkday(x.k)); if(w.length) openTimeMulti(w); } else openTime(state.sel.k); return; }
   applyShift(map[e.key]);
