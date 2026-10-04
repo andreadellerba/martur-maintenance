@@ -70,6 +70,9 @@ button{font:inherit;color:inherit}
 .mnav .arr:hover{background:var(--surface-2)}
 .month{font-family:var(--display);font-size:26px;font-weight:700;margin:0;min-width:160px;text-align:center;white-space:nowrap}
 .today{height:32px;padding:0 12px;border:1px solid var(--line-2);border-radius:8px;background:transparent;font-size:13px;color:var(--muted-2);cursor:pointer}
+select.today,.jump{background:var(--surface);color:var(--text);font:inherit;font-size:13px;font-weight:600;color-scheme:dark}
+:root[data-theme="light"] select.today,:root[data-theme="light"] .jump{color-scheme:light}
+.jump{padding:0 8px}
 .palette{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
 .palette.off{visibility:hidden}
 .chip{--chipc:var(--sm);height:38px;padding:0 10px;border-radius:10px;display:flex;align-items:center;gap:8px;cursor:grab;background:var(--surface);border:1px solid var(--line-2)}
@@ -137,6 +140,10 @@ button{font:inherit;color:inherit}
 .cell.val{background:color-mix(in srgb,var(--ac) 22%,var(--surface));border-color:color-mix(in srgb,var(--ac) 55%,transparent);color:var(--ac)}
 .cell .ot{font-family:var(--body);font-size:9.5px;letter-spacing:-.03em;white-space:nowrap;max-width:100%;font-weight:700;margin-top:3px;padding:1px 2px;border-radius:4px;background:var(--bg);color:var(--c-stra)}
 .cell .mk{font-family:var(--body);font-size:9px;letter-spacing:-.03em;white-space:nowrap;max-width:100%;font-weight:700;margin-top:3px;padding:1px 2px;border-radius:4px;background:var(--bg);color:var(--mc)}
+.cell .star{position:absolute;top:0;left:3px;font-family:var(--body);font-size:15px;font-weight:900;line-height:1;color:var(--text)}
+.cell.shift .star{color:var(--on-fill)}
+.cell.val .star,.cell.abs .star{color:var(--ac)}
+.cell.lg .star{top:auto;left:auto;bottom:6px;right:9px;font-size:20px}
 .cell .miss{position:absolute;top:4px;right:4px;width:7px;height:7px;border-radius:50%;background:var(--weekend);box-shadow:0 0 0 2px var(--bg)}
 .cell.rng{box-shadow:inset 0 0 0 2px var(--accent);background:color-mix(in srgb,var(--accent) 20%,var(--surface))}
 .cell.sel{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--text);z-index:1}
@@ -239,6 +246,13 @@ body:not(.locked) .lock{display:none}
 .s-wd.we{color:var(--weekend)}
 .s-empty{min-height:92px}
 .cell.lg{min-height:92px;border-radius:10px;gap:3px}
+.wkv .cell .t1{font-size:22px}
+.wkv .cell .t2{font-size:18px}
+.wkv .cell .sm{font-size:15px;letter-spacing:0}
+.wkv .cell .big{font-size:30px}
+.wkv .cell .mk,.wkv .cell .ot{font-size:12px}
+.wkv .cell .fest{font-size:10px;padding:1px 5px}
+.wkv .cell .star{font-size:20px;left:6px;top:2px}
 .cell.lg .dn{position:absolute;top:6px;left:8px;font-family:var(--display);font-size:16px;font-weight:700;opacity:.85}
 .cell.lg.we .dn{color:var(--weekend-ink)}
 .cell.lg.shift .dn{color:inherit}
@@ -348,6 +362,9 @@ body:not(.locked) .lock{display:none}
     <h1 class="month" id="month"></h1>
     <button class="arr" id="next" aria-label="Mese successivo">›</button>
     <button class="today" id="todayBtn">Oggi</button>
+    <select class="today" id="spanSel" aria-label="Vista"><option value="month">Mensile</option><option value="week">Settimanale</option></select>
+    <input class="today jump" id="jumpM" type="month" aria-label="Vai al mese" title="Vai a un mese qualsiasi">
+    <input class="today jump" id="jumpW" type="week" aria-label="Vai alla settimana" title="Vai a una settimana qualsiasi" hidden>
   </div>
   <div class="palette" id="shiftbar" role="toolbar" aria-label="Turno da inserire"></div>
   <div class="sub-r"><button class="fill" id="copyBtn" hidden title="Copia i turni previsti del mese nelle presenze, solo nei giorni ancora vuoti">Copia nelle presenze</button><button class="fill" id="fillBtn">Riempi lun–ven</button></div>
@@ -399,6 +416,19 @@ body:not(.locked) .lock{display:none}
   </form>
 </dialog>
 
+<dialog id="noteDlg">
+  <form method="dialog" id="noteForm">
+    <h2>Commento</h2>
+    <p id="noteSub"></p>
+    <label for="noteTxt" style="position:absolute;left:-9999px">Commento</label>
+    <textarea id="noteTxt" rows="4" maxlength="500" placeholder="Scrivi un commento: si vede fermando il mouse sulla casella"></textarea>
+    <div class="dlg-actions">
+      <button type="button" class="btn ghost" id="noteClear">Togli</button>
+      <button type="button" class="btn" id="noteCancel">Annulla</button>
+      <button type="submit" class="btn primary">Salva</button>
+    </div>
+  </form>
+</dialog>
 <dialog id="holDlg">
   <form method="dialog" id="holForm">
     <h2>Festività aziendale</h2>
@@ -461,7 +491,7 @@ const WD = ["LUN","MAR","MER","GIO","VEN","SAB","DOM"];
 const KEY = "registro-reparto-v1";
 
 const now = new Date();
-const state = {cat:"presenze", person:PEOPLE[0], y:now.getFullYear(), m:now.getMonth(), brush:null, sel:null, view:null};
+const state = {cat:"presenze", person:PEOPLE[0], y:now.getFullYear(), m:now.getMonth(), brush:null, sel:null, view:null, span:"month", wk:null};
 let data = migrate(load());
 const undoStack = [];
 let lastTimes = {s:"06:00", e:"14:00"};
@@ -577,6 +607,9 @@ const malH    = (p,k) => Number(malE(p,k).h) || 0;
 const cigH    = (p,k) => Number(get("cigo",p,k)) || 0;
 const visH    = (p,k) => Number(get("visita",p,k)) || 0;
 const menH    = (p,k) => Number(get("mensa",p,k)) || 0;
+/* commento libero della casella (persona + giorno), visibile passando col mouse */
+const noteOf  = (p,k) => { const n = get("note",p,k); return typeof n==="string" ? n : ""; };
+const hasNote = (p,k) => !!(noteOf(p,k) || get("ferie",p,k)?.n || malE(p,k).n);
 const covered = (p,k) => worked(p,k) + absH(p,k);
 /* valore di una categoria in un giorno, in ore */
 function hoursOf(cat,p,k){
@@ -616,6 +649,46 @@ function daysOf(y,m){
   for(let d=1; d<=n; d++) out.push({d, key:iso(y,m,d), dow:(off+d-1)%7, row:Math.floor((off+d-1)/7)});
   return out;
 }
+/* ---------- Vista mensile o settimanale ---------- */
+const SPAN_KEY = "registro-vista";
+function mondayOf(k){ const d = keyDate(k); d.setDate(d.getDate() - (d.getDay()+6)%7); return toKey(d); }
+function addDays(k, n){ const d = keyDate(k); d.setDate(d.getDate() + n); return toKey(d); }
+/* mese "di riferimento" di una settimana: quello del giovedì (come i numeri ISO) */
+function syncMonth(){ const t = keyDate(addDays(state.wk, 3)); state.y = t.getFullYear(); state.m = t.getMonth(); }
+/* giorni mostrati: il mese intero o i 7 giorni della settimana */
+function viewDays(){
+  if(state.span!=="week") return daysOf(state.y, state.m);
+  return [0,1,2,3,4,5,6].map(i => { const k = addDays(state.wk, i); return {d:Number(k.slice(8)), key:k, dow:i, row:0}; });
+}
+/* festività degli anni toccati dai giorni mostrati */
+function holMap(days){ const h = {}; for(const y of new Set(days.map(x => Number(x.key.slice(0,4))))) Object.assign(h, holidays(y)); return h; }
+function viewTitle(){
+  if(state.span!=="week") return `${MONTHS[state.m]} ${state.y}`;
+  const a = keyDate(state.wk), b = keyDate(addDays(state.wk, 6));
+  const da = a.getMonth()===b.getMonth() ? a.getDate() : `${a.getDate()} ${MONTHS[a.getMonth()].slice(0,3).toLowerCase()}`;
+  return `W${isoWeek(state.wk)} · ${da}–${b.getDate()} ${MONTHS[b.getMonth()].toLowerCase()} ${b.getFullYear()}`;
+}
+/* "2026-W41" <-> lunedì di quella settimana */
+function weekInput(k){ const t = keyDate(addDays(k, 3)); return `${t.getFullYear()}-W${String(isoWeek(k)).padStart(2,"0")}`; }
+function weekFromInput(v){
+  const [y, w] = v.split("-W").map(Number); if(!y || !w) return null;
+  const jan4 = iso(y, 0, 4);
+  return addDays(mondayOf(jan4), (w-1)*7);
+}
+function setSpan(s){
+  state.span = s; lsSet(SPAN_KEY, s);
+  if(s==="week"){
+    const t = toKey(now);
+    state.wk = t.slice(0,7)===iso(state.y,state.m,1).slice(0,7) ? mondayOf(t) : mondayOf(iso(state.y,state.m,1));
+    syncMonth();
+  }
+  state.sel = null; state.msel = null; render();
+}
+function stepView(n){
+  if(state.span==="week"){ state.wk = addDays(state.wk, 7*n); syncMonth(); }
+  else { const d = new Date(state.y, state.m + n, 1); state.y = d.getFullYear(); state.m = d.getMonth(); }
+  state.sel = null; state.msel = null; render();
+}
 function isWorkday(key){
   const [y,m,d] = key.split("-").map(Number);
   const dow = (new Date(y,m-1,d).getDay()+6)%7;
@@ -624,7 +697,7 @@ function isWorkday(key){
 /* totali per settimana: per ferie restituisce anche la divisione F / P */
 function weeksOf(cat,p){
   const w = [];
-  for(const x of daysOf(state.y,state.m)){
+  for(const x of viewDays()){
     const o = w[x.row] ||= {h:0,f:0,p:0};
     o.h += hoursOf(cat,p,x.key);
     if(cat==="ferie"){ o.f += ferF(p,x.key); o.p += ferP(p,x.key); }
@@ -635,7 +708,7 @@ function weeksOf(cat,p){
 /* Totali del mese */
 function monthStats(cat, person){
   const st = {n:0, hours:0, auto:0, ferie:0, par:0, sh:{}};
-  for(const x of daysOf(state.y,state.m)){
+  for(const x of viewDays()){
     const k = x.key;
     if(cat==="presenze"){
       const v = get("presenze",person,k); if(v===undefined) continue;
@@ -705,7 +778,7 @@ const ghost = n => n ? fmt(n) : "–";
 
 /* colonne dei totali a destra */
 function totalCols(){
-  if(state.cat==="turnazione") return ["1","2","C"].map(t => ({label: t==="C" ? "C" : t+"T", color:`var(${SHIFTS[t].color})`, v:p=>{ let n=0; for(const x of daysOf(state.y,state.m)) if(turnOf(p,x.key)===t) n++; return n; }}));
+  if(state.cat==="turnazione") return ["1","2","C"].map(t => ({label: t==="C" ? "C" : t+"T", color:`var(${SHIFTS[t].color})`, v:p=>{ let n=0; for(const x of viewDays()) if(turnOf(p,x.key)===t) n++; return n; }}));
   if(state.cat==="presenze") return [
     {label:"Ore", color:"var(--c-pres)", v:p=>sumMonth(p,worked)},
     {label:"Str.", color:"var(--c-stra)", v:p=>sumMonth(p,otDay)},
@@ -714,13 +787,14 @@ function totalCols(){
     {label:"Mal.", color:"var(--c-mal)", v:p=>sumMonth(p,malH)},
     {label:"CIGO", color:"var(--c-cigo)", v:p=>sumMonth(p,cigH)}
   ];
+  if(state.span==="week") return [{label:"Settimana", color:CATCOL[state.cat], month:true}];
   const ranges = [];
-  for(const x of daysOf(state.y,state.m)){ const rg = ranges[x.row] ||= [x.d,x.d,x.key]; rg[1] = x.d; }
+  for(const x of viewDays()){ const rg = ranges[x.row] ||= [x.d,x.d,x.key]; rg[1] = x.d; }
   const cols = ranges.map((rg,i) => ({label:`W${isoWeek(rg[2])}`, small:`${rg[0]}–${rg[1]}`, color:"var(--muted)", week:i}));
   cols.push({label:"Mese", color:CATCOL[state.cat], month:true});
   return cols;
 }
-function sumMonth(p, fn){ let t = 0; for(const x of daysOf(state.y,state.m)) t += fn(p,x.key); return t; }
+function sumMonth(p, fn){ let t = 0; for(const x of viewDays()) t += fn(p,x.key); return t; }
 
 function renderTabs(){
   $("tabs").innerHTML = CATS.map(c =>
@@ -804,6 +878,7 @@ function cellHTML(p, x, hol, big){
   }
   /* festivo: "FEST" resta anche se ci metti un turno, e prende il colore della casella */
   if(hol[k]){ cls.push("hol"); aria += `, festivo (${hol[k]})`; if(!big) inner = `<span class="fest" title="${hol[k]}"></span>` + inner; }
+  if((cat==="presenze" || cat==="turnazione") && hasNote(p,k)) inner += `<span class="star" aria-hidden="true">*</span>`;
   if(big){ cls.push("lg"); inner = `<span class="dn">${x.d}</span>` + (hol[k] ? `<span class="fest hn">FEST · ${hol[k]}</span>` : "") + inner; }
   return `<button class="${cls.join(" ")}" data-p="${esc(p)}" data-date="${k}" style="${style}" aria-label="${esc(aria)}">${inner}</button>`;
 }
@@ -816,10 +891,10 @@ function renderViewbar(){
 }
 /* calendario di una persona sola, a settimane */
 function renderSingle(p){
-  const {y,m,cat} = state, days = daysOf(y,m), hol = holidays(y);
-  const off = (new Date(y,m,1).getDay()+6)%7, rows = Math.ceil((off+days.length)/7);
+  const {cat} = state, days = viewDays(), hol = holMap(days);
+  const off = state.span==="week" ? 0 : (new Date(state.y,state.m,1).getDay()+6)%7, rows = Math.ceil((off+days.length)/7);
   const nm = p.split(" "), last = nm.pop();
-  let html = `<div class="s-head"><span><b>${esc(nm.join(" "))} ${esc(last)}</b><small>${MONTHS[m]} ${y}</small></span></div>`;
+  let html = `<div class="s-head"><span><b>${esc(nm.join(" "))} ${esc(last)}</b><small>${viewTitle()}</small></span></div>`;
   html += `<div class="single">` + ["LUN","MAR","MER","GIO","VEN","SAB","DOM"].map((w,i) => `<div class="s-wd${i>4?" we":""}">${w}</div>`).join("") + `<div class="s-wd">SETT.</div>`;
   for(let r=0; r<rows; r++){
     const wk = [];
@@ -845,7 +920,7 @@ function renderSingle(p){
   let tots;
   if(cat==="presenze" || cat==="turnazione") tots = totalCols().map(c => ({label:c.label, color:c.color, v: c.label==="Str." && c.v(p) ? "+"+fmt(c.v(p)) : ghost(c.v(p))}));
   else if(cat==="ferie") tots = [{label:"Ferie", color:"var(--c-ferie)", v:ghost(sumMonth(p,ferF))},{label:"PAR", color:"var(--c-par)", v:ghost(sumMonth(p,ferP))}];
-  else tots = [{label:"Mese", color:CATCOL[cat], v:ghost(sumMonth(p,(q,k)=>hoursOf(cat,q,k)))}];
+  else tots = [{label:state.span==="week" ? "Settimana" : "Mese", color:CATCOL[cat], v:ghost(sumMonth(p,(q,k)=>hoursOf(cat,q,k)))}];
   html += `<div class="s-tots">${tots.map(t => `<span class="s-tot" style="color:${t.color}"><small>${t.label}</small><b>${t.v}</b></span>`).join("")}</div>`;
   $("matrix").innerHTML = html;
   $("matrix").classList.add("one");
@@ -853,7 +928,8 @@ function renderSingle(p){
 function renderMatrix(){
   if(state.view){ renderSingle(state.view); return; }
   $("matrix").classList.remove("one");
-  const {y,m,cat} = state, days = daysOf(y,m), hol = holidays(y), cols = totalCols();
+  $("matrix").classList.toggle("wkv", state.span==="week");
+  const {cat} = state, days = viewDays(), hol = holMap(days), cols = totalCols();
   const todayIso = iso(now.getFullYear(),now.getMonth(),now.getDate());
   const colsCss = `132px repeat(${days.length}, minmax(0,1fr)) repeat(${cols.length}, ${cat==="presenze"||cat==="turnazione"?"42px":"46px"})`;
   $("matrix").style.setProperty("--cols", colsCss);
@@ -921,6 +997,32 @@ function weekTurn(p){
   for(let i=0;i<5;i++){ const d = new Date(t.getFullYear(), t.getMonth(), t.getDate()-dow+i); const v = turnOf(p, iso(d.getFullYear(), d.getMonth(), d.getDate())); if(v) return v; }
   return planned(p, iso(t.getFullYear(), t.getMonth(), t.getDate()-dow)) || null;
 }
+/* popup del commento libero (una casella o tutte quelle selezionate) */
+let notePairs = null;
+function openNote(pairs){
+  notePairs = pairs;
+  if(pairs.length===1){
+    const {p,k} = pairs[0], [yy,mm,dd] = k.split("-").map(Number);
+    $("noteSub").textContent = `${p}, ${dd} ${MONTHS[mm-1]} ${yy}`;
+    $("noteTxt").value = noteOf(p,k);
+    $("noteClear").style.visibility = noteOf(p,k) ? "visible" : "hidden";
+  } else {
+    $("noteSub").textContent = multiSub(pairs, "Il commento vale");
+    $("noteTxt").value = "";
+    $("noteClear").textContent = "Togli da tutti";
+    $("noteClear").style.visibility = pairs.some(({p,k}) => noteOf(p,k)) ? "visible" : "hidden";
+  }
+  if(pairs.length===1) $("noteClear").textContent = "Togli";
+  $("noteDlg").showModal(); $("noteTxt").focus();
+}
+$("noteForm").addEventListener("submit", () => {
+  const ps = notePairs, t = $("noteTxt").value;
+  commit(() => { ps.forEach(({p,k}) => setNote(p, k, t)); state.msel = null; });
+});
+$("noteClear").onclick = () => { const ps = notePairs; $("noteDlg").close(); commit(() => { ps.forEach(({p,k}) => setNote(p, k, "")); state.msel = null; }); };
+$("noteCancel").onclick = () => $("noteDlg").close();
+const noteBtn = (p,k) => `<button class="act" data-a="note">${noteOf(p,k) ? "Modifica commento" : "Commento"}</button>`;
+
 /* festività aziendale: pulsante nella barra del giorno (le festività nazionali non si toccano) */
 const companyHol = k => { const n = (data.festivita || {})[k]; return typeof n==="string" && n ? n : ""; };
 function holBtn(k){
@@ -963,7 +1065,7 @@ function renderDetail(){
          <button class="act clear" data-a="clear" aria-label="Svuota i giorni selezionati">Svuota</button>`;
     el.innerHTML = `<span class="dnum" style="--ac:var(--accent)">${pairs.length}</span>
       <span class="dtxt"><b>${who}, ${ks.length} ${ks.length===1 ? "giorno" : "giorni"} (dal ${d(ks[0])} al ${d(ks[ks.length-1])})</b><small>Quello che scegli vale per tutte le caselle selezionate (ferie, malattia e simili solo nei giorni lavorativi). Clicca una casella per togliere la selezione.</small></span>
-      <span class="dact">${acts}<button class="act" data-a="unsel">Annulla selezione</button></span>`;
+      <span class="dact">${acts}<button class="act" data-a="note">Commento</button><button class="act" data-a="unsel">Annulla selezione</button></span>`;
     return;
   }
   if(!s){ el.innerHTML = `<span class="dnum empty">–</span><span class="dtxt"><b>Seleziona un giorno</b><small>Clicca una casella per vedere il dettaglio e inserire malattia, ferie, PAR, CIGO o straordinario. Trascinando col mouse selezioni più giorni e più persone insieme.</small></span>`; return; }
@@ -977,6 +1079,7 @@ function renderDetail(){
       <span class="dact">
         ${man ? `<button class="act" data-a="reset">Ripristina rotazione</button>` : ""}
         ${holBtn(k)}
+        ${noteBtn(p,k)}
         ${v ? `<button class="act" data-a="copyday" style="--ac:var(--c-pres)">Copia nelle presenze</button>` : ""}
       </span>`;
     return;
@@ -995,6 +1098,7 @@ function renderDetail(){
     <span class="dact">
       <button class="act" data-a="time">Orario manuale</button>
       ${holBtn(k)}
+      ${noteBtn(p,k)}
       <button class="act" data-a="malattia" style="--ac:var(--c-mal)">Malattia</button>
       <button class="act" data-a="ferie" style="--ac:var(--c-ferie)">Ferie / PAR</button>
       <button class="act" data-a="visita" style="--ac:var(--c-vis)">Visita medica</button>
@@ -1009,7 +1113,11 @@ function render(){
   document.body.dataset.cat = state.cat;
   const rp = state.cat==="report";
   $("report").hidden = !rp; $("board").hidden = rp; $("viewbar").hidden = rp; $("detail").hidden = rp; $("subbar").hidden = rp;
-  $("month").textContent = `${MONTHS[state.m]} ${state.y}`;
+  $("month").textContent = viewTitle();
+  $("spanSel").value = state.span || "month";
+  $("jumpM").hidden = state.span==="week"; $("jumpW").hidden = state.span!=="week";
+  $("jumpM").value = iso(state.y,state.m,1).slice(0,7); if(state.span==="week") $("jumpW").value = weekInput(state.wk);
+  $("prev").setAttribute("aria-label", state.span==="week" ? "Settimana precedente" : "Mese precedente"); $("next").setAttribute("aria-label", state.span==="week" ? "Settimana successiva" : "Mese successivo");
   $("undoBtn").disabled = !undoStack.length;
   $("hint").textContent = CATS.find(c=>c.id===state.cat).hint;
   renderTabs();
@@ -1029,9 +1137,12 @@ $("tabs").addEventListener("click", e => {
   const t = e.target.closest(".pill"); if(!t) return;
   state.cat = t.dataset.cat; render();
 });
-$("prev").onclick = () => { state.m--; if(state.m<0){state.m=11;state.y--;} state.sel = null; render(); };
-$("next").onclick = () => { state.m++; if(state.m>11){state.m=0;state.y++;} state.sel = null; render(); };
-$("todayBtn").onclick = () => { state.y=now.getFullYear(); state.m=now.getMonth(); render(); };
+$("prev").onclick = () => stepView(-1);
+$("next").onclick = () => stepView(1);
+$("todayBtn").onclick = () => { state.y=now.getFullYear(); state.m=now.getMonth(); if(state.span==="week"){ state.wk = mondayOf(toKey(now)); syncMonth(); } render(); };
+$("spanSel").onchange = e => setSpan(e.target.value);
+$("jumpM").onchange = e => { const [y,m] = e.target.value.split("-").map(Number); if(!y) return; state.y = y; state.m = m-1; state.sel = null; state.msel = null; render(); };
+$("jumpW").onchange = e => { const k = weekFromInput(e.target.value); if(!k) return; state.wk = k; syncMonth(); state.sel = null; state.msel = null; render(); };
 $("undoBtn").onclick = undo;
 
 /* palette turni: clic sceglie il pennello, secondo clic lo toglie */
@@ -1042,9 +1153,9 @@ $("shiftbar").addEventListener("click", e => {
 $("fillBtn").onclick = () => fillMonth();
 function fillMonth(){
   if(!state.brush || state.brush==="M") return;
-  const {y,m} = state, hol = holidays(y);
+  const hol = holMap(viewDays());
   commit(() => {
-    for(const x of daysOf(y,m)){
+    for(const x of viewDays()){
       if(state.brush==="X"){ setShift(state.person, x.key, null); continue; }
       if(x.dow<5 && !hol[x.key]) setShift(state.person, x.key, state.brush);
     }
@@ -1054,7 +1165,7 @@ function fillMonth(){
 $("copyBtn").onclick = () => {
   let n = 0;
   commit(() => {
-    for(const p of PEOPLE) for(const x of daysOf(state.y,state.m)){
+    for(const p of PEOPLE) for(const x of viewDays()){
       const v = turnOf(p,x.key);
       if(v && get("presenze",p,x.key)===undefined){ bucket("presenze",p)[x.key] = TO_PRES[v]; n++; }
     }
@@ -1077,6 +1188,7 @@ function hideTip(){ clearTimeout(tipTimer); tipTimer = null; tipCell = null; tip
 /* righe del riquadro: commenti di ferie/PAR e malattia del giorno */
 function tipLines(p, k){
   const e = get("ferie",p,k) || {}, m = malE(p,k), out = [];
+  if(noteOf(p,k)) out.push(`<b>Commento</b>${esc(noteOf(p,k))}`);
   if(e.n){
     const parts = [];
     if(e.f) parts.push(`Ferie${e.a==="AP" ? " AP" : ""} ${fmt(e.f)} h${e.fc ? " (CIGO)" : ""}`);
@@ -1133,7 +1245,7 @@ function rectPairs(q){
   if(!q) return [];
   const [a,b] = [q.a, q.b].sort();
   const i = [PEOPLE.indexOf(q.p0), PEOPLE.indexOf(q.p1)].sort((x,y) => x-y), out = [];
-  for(const p of PEOPLE.slice(i[0], i[1]+1)) for(const x of daysOf(state.y,state.m)) if(x.key>=a && x.key<=b) out.push({p, k:x.key});
+  for(const p of PEOPLE.slice(i[0], i[1]+1)) for(const x of viewDays()) if(x.key>=a && x.key<=b) out.push({p, k:x.key});
   return out;
 }
 const pairSet = pairs => new Set(pairs.map(x => x.p+"|"+x.k));
@@ -1227,13 +1339,14 @@ $("matrix").addEventListener("drop", e => {
 });
 
 /* barra del giorno selezionato (o delle caselle selezionate) */
-const ALLCATS = ["presenze","straordinario","ferie","malattia","cigo","visita","mensa"];
+const ALLCATS = ["presenze","straordinario","ferie","malattia","cigo","visita","mensa","note"];
 $("detail").addEventListener("click", e => {
   const b = e.target.closest(".act"); if(!b) return;
   const a = b.dataset.a;
   if(state.msel){
     const pairs = state.msel.pairs, work = pairs.filter(x => isWorkday(x.k));
     if(a==="unsel"){ state.msel = null; render(); return; }
+    if(a==="note") return openNote(pairs);
     if(a==="reset") return commit(() => { pairs.forEach(({p,k}) => { delete bucket("turnazione",p)[k]; }); state.msel = null; });
     if(a==="copyday") return commit(() => { pairs.forEach(({p,k}) => { const t = turnOf(p,k); if(t) bucket("presenze",p)[k] = TO_PRES[t]; }); state.msel = null; });
     if(a==="clear") return commit(() => { pairs.forEach(({p,k}) => { for(const c of ALLCATS) delete bucket(c,p)[k]; }); state.msel = null; });
@@ -1248,13 +1361,14 @@ $("detail").addEventListener("click", e => {
   if(a==="copyday") return commit(() => { bucket("presenze",p)[k] = TO_PRES[turnOf(p,k)]; });
   if(a==="time") return openTime(k);
   if(a==="hol") return openHol(k);
+  if(a==="note") return openNote([{p,k}]);
   if(a==="clear") return commit(() => { for(const c of ALLCATS) delete bucket(c,p)[k]; });
   openHours(k, a);
 });
 
 /* tastiera */
 document.addEventListener("keydown", e => {
-  if($("dlg").open || $("rest").open) return;
+  if($("dlg").open || $("rest").open || $("noteDlg").open || $("holDlg").open) return;
   if((e.ctrlKey||e.metaKey) && !e.shiftKey && e.key.toLowerCase()==="z"){ e.preventDefault(); undo(); return; }
   if(!["presenze","turnazione"].includes(state.cat) || e.ctrlKey || e.metaKey || e.altKey) return;
   if(e.target.closest && e.target.closest("input,textarea")) return;
@@ -1297,6 +1411,7 @@ function openHoursMulti(pairs, cat = state.cat){
   openHours(pairs[0].k, cat);
   multiKeys = pairs;
   $("dlgSub").textContent = multiSub(pairs, "Le ore scelte valgono");
+  $("ferNote").value = "";   /* vuoto = i commenti già scritti restano */
   $("hours").value = "";
   setChips(null);
   $("dlgClear").textContent = "Rimuovi da tutti";
@@ -1327,7 +1442,8 @@ function openHours(key, cat = state.cat){
   } else if(cat==="malattia"){
     const me = malE(state.person,key);
     setYear(me.a); setCig(me.c); $("ferNote").value = me.n || "";
-  } else if(cat==="straordinario"){
+  } else $("ferNote").value = noteOf(state.person,key);   /* le altre voci usano il commento della casella */
+  if(cat==="straordinario"){
     const a = otAuto(state.person, key);
     if(a) sub += `. Dal turno: ${fmt(a)} h (automatico), qui aggiungi solo le ore in più.`;
   }
@@ -1368,7 +1484,7 @@ function setType(t){
 $("seg").addEventListener("click", e => { const x = e.target.closest("button"); if(x) setType(x.dataset.t); });
 /* ferie e PAR: "Anno precedente" acceso = "AP", spento = anno corrente */
 const EXTRA = ["ferie","malattia"];   /* categorie con anno precedente, commento e "contalo come CIGO" */
-function showYear(){ $("yearBtn").hidden = $("ferNote").hidden = $("ferNoteLab").hidden = $("cigRow").hidden = !EXTRA.includes(dlgMode); }
+function showYear(){ $("yearBtn").hidden = $("cigRow").hidden = !EXTRA.includes(dlgMode); }
 /* "Contalo come CIGO": in presenze restano ferie/PAR, nel report vanno nella colonna CIGO */
 function setCig(v){ ferieCig = !!v; $("cigBtn").setAttribute("aria-pressed", ferieCig); }
 $("cigBtn").onclick = () => setCig(!ferieCig);
@@ -1406,14 +1522,23 @@ function writeHours(cat, key, v, type, year, note, cig){
   }
   if(isNaN(v) || v<=0) delete b[key]; else b[key] = v;
 }
+/* commento libero: scrive o toglie il commento della casella */
+function setNote(p, k, n){ n = (n || "").trim(); if(n) bucket("note",p)[k] = n; else delete bucket("note",p)[k]; }
 function saveHours(v){
-  const key = editing, cat = dlgMode;
+  const key = editing, cat = dlgMode, ext = EXTRA.includes(cat), txt = $("ferNote").value;
   if(multiKeys){
-    const ks = multiKeys, note = EXTRA.includes(cat) ? $("ferNote").value : undefined, cig = EXTRA.includes(cat) ? ferieCig : undefined; multiKeys = null;
-    commit(() => { ks.forEach(({p,k}) => { state.person = p; writeHours(cat, k, v, ferieType, EXTRA.includes(cat) ? ferieYear : undefined, note, cig); }); state.msel = null; });
+    /* più caselle: un commento vuoto lascia com'erano quelli già scritti */
+    const ks = multiKeys, note = ext && txt.trim() ? txt : undefined, cig = ext ? ferieCig : undefined; multiKeys = null;
+    commit(() => {
+      ks.forEach(({p,k}) => { state.person = p; writeHours(cat, k, v, ferieType, ext ? ferieYear : undefined, note, cig); if(!ext && txt.trim()) setNote(p, k, txt); });
+      state.msel = null;
+    });
     return;
   }
-  commit(() => writeHours(cat, key, v, ferieType, EXTRA.includes(cat) ? ferieYear : undefined, EXTRA.includes(cat) ? $("ferNote").value : undefined, EXTRA.includes(cat) ? ferieCig : undefined));
+  commit(() => {
+    writeHours(cat, key, v, ferieType, ext ? ferieYear : undefined, ext ? txt : undefined, ext ? ferieCig : undefined);
+    if(!ext) setNote(state.person, key, txt);
+  });
   if(cat!=="straordinario") askRest(key);
 }
 $("chips").addEventListener("click", e => {
@@ -1968,6 +2093,9 @@ if("serviceWorker" in navigator && window.isSecureContext && location.protocol!=
 /* aperta come file dal computer: Chrome non propone l'installazione da solo, mostro come fare */
 let unlocked = false;
 if(location.protocol==="file:" && !framed) setTimeout(function wait(){ if(!unlocked) return setTimeout(wait, 800); if(!installEvt) showInstall("hint"); }, 1200);
+
+/* vista settimanale ricordata su questo dispositivo */
+if(lsGet(SPAN_KEY)==="week"){ state.span = "week"; state.wk = mondayOf(toKey(now)); syncMonth(); }
 
 /* ---------- Accesso e salvataggio online (Firebase) ---------- */
 /* ogni persona di ogni categoria è un documento a sé in "registro":
