@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Gestione presenze manutenzione</title>
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#131922">
+<meta name="theme-color" content="#08090B">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,13 +13,13 @@
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#131922; --surface:#1A212C; --surface-2:#202835; --surface-3:#2F3A4A; --line:#29323F; --line-2:#344050;
-  --text:#EDEFF2; --muted:#8D99AC; --muted-2:#A9B3C3;
+  --bg:#08090B; --surface:#111317; --surface-2:#16191E; --surface-3:#252930; --line:#1C1F25; --line-2:#272B33;
+  --text:#EDEFF2; --muted:#8A919D; --muted-2:#A8AFBA;
   --weekend:#FF3B4E; --weekend-ink:#FF8A95; --weekend-bg:#5C1424; --weekend-line:#A3233A;
   --s1:#1EB4FF; --s2:#00E08A; --sc:#FFC400; --s1l:#1EB4FF; --s2l:#00E08A; --sm:#9FB0C8; --c-turn:#B4C4FF;
   --c-pres:#00E676; --c-stra:#FFDD00; --c-ferie:#3D8BFF; --c-par:#00D0FF; --c-mal:#FF4545; --c-cigo:#D9822B; --c-vis:#14F0C8; --c-men:#FF9100;
-  --on-fill:#0F141B; --on-accent:#0F141B;
-  --today:#4ADE80; --faint:#6E7B8F; --btn-text:#CDD4DE; --cell-line:#242D39; --hover-line:#55627A; --backdrop:rgba(0,0,0,.6);
+  --on-fill:#08090B; --on-accent:#08090B;
+  --today:#4ADE80; --faint:#6B717C; --btn-text:#CDD2DA; --cell-line:#17191E; --hover-line:#4A505B; --backdrop:rgba(0,0,0,.6);
   --accent:var(--c-pres);
   --display:"Barlow Condensed","Arial Narrow",sans-serif;
   --body:"Barlow","Segoe UI",system-ui,sans-serif;
@@ -117,7 +117,7 @@ select.today,.jump{background:var(--surface);color:var(--text);font:inherit;font
 .th{white-space:nowrap;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:6px;font-size:10px;font-weight:700;line-height:1.1;text-align:center}
 .th small{font-size:9px;font-weight:500;color:var(--faint);white-space:nowrap}
 .prow{height:88px;border-radius:10px}
-.prow.alt{background:color-mix(in srgb,var(--text) 5.5%,transparent)}
+
 .prow.on{background:var(--surface);outline:1px solid var(--line-2)}
 .pname{display:flex;align-items:center;gap:10px;padding:0 2px 0 6px;border:0;background:transparent;text-align:left;cursor:pointer;min-width:0;border-radius:10px}
 .pname:hover .pn b{text-decoration:underline}
@@ -160,7 +160,18 @@ select.today,.jump{background:var(--surface);color:var(--text);font:inherit;font
 .tc.total{background:transparent;font-size:12px}
 
 /* dettaglio del giorno */
-.detail{margin:0 16px 12px;display:flex;align-items:center;gap:16px;padding:14px 18px;background:var(--surface);border:1px solid var(--line);border-radius:14px;flex-wrap:wrap}
+.detail{margin:0 16px 12px;display:flex;align-items:center;gap:16px;padding:12px 16px;background:var(--surface);border:1px solid var(--line);border-radius:14px}
+.avatar{--ac:var(--line-2);width:80px;height:80px;flex-shrink:0;border-radius:14px;border:3px solid var(--ac);background:var(--surface-2);color:var(--muted-2);padding:0;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:var(--display);cursor:pointer}
+.avatar span{font-size:26px;font-weight:700;line-height:1}
+.avatar small{font-family:var(--body);font-size:10px;font-weight:600;color:var(--faint)}
+.avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.avatar.empty,.avatar.multi{cursor:default}
+.avatar.multi span{color:var(--ac)}
+.dbody{flex:1;min-width:0;min-height:80px;display:flex;flex-direction:column;justify-content:center;gap:10px}
+.dline{display:flex;align-items:baseline;gap:14px;white-space:nowrap;overflow:hidden;min-width:0}
+.dline b{font-size:16px;font-family:var(--display);letter-spacing:.02em;flex-shrink:0}
+.dline span{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis}
+.dhol{font-style:normal;font-family:var(--body);font-size:11px;font-weight:800;padding:1px 6px;border-radius:4px;background:var(--weekend);color:var(--bg);margin-left:6px}
 .dnum{--ac:var(--surface-3);width:44px;height:44px;border-radius:10px;background:var(--ac);color:var(--on-fill);display:grid;place-items:center;font-family:var(--display);font-size:22px;font-weight:700;flex-shrink:0}
 .dnum.empty{color:var(--muted)}
 .dtxt{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 280px}
@@ -961,7 +972,7 @@ function renderMatrix(){
     const nm = p.split(" "), last = nm.pop();
     let subTxt = `${st.n} ${st.n===1?"Giorno":"Giorni"}`;
     if(cat==="turnazione"){ const t = weekTurn(p); subTxt = t ? `W${isoWeek(toKey(new Date()))}: ${TNAME[t]}` : "nessun turno"; }
-    html += `<div class="row prow${on?" on":""}${PEOPLE.indexOf(p)%2 ? " alt" : ""}"><button class="pname" data-p="${esc(p)}"><span class="pn"><b>${esc(nm.join(" "))}<br>${esc(last)}</b><small>${subTxt}</small></span></button>`;
+    html += `<div class="row prow${on?" on":""}"><button class="pname" data-p="${esc(p)}"><span class="pn"><b>${esc(nm.join(" "))}<br>${esc(last)}</b><small>${subTxt}</small></span></button>`;
     for(const x of days) html += cellHTML(p, x, hol);
     const weeks = (cat==="presenze" || cat==="turnazione") ? null : weeksOf(cat,p);
     cols.forEach((c,i) => {
@@ -1074,36 +1085,50 @@ function presBtns(p, k){
     ${one ? noteBtn(p,k) : `<button class="act" data-a="note">Commento</button>`}
     <button class="act clear" data-a="clear" title="Toglie tutto: turno, assenze, straordinario e commento (tasto 0)">Svuota</button>`;
 }
+/* foto del dipendente (riquadro a sinistra nella barra): clic per caricarla */
+const photoOf = p => { const v = (data.foto || {})[p]; return typeof v==="string" && v.startsWith("data:image") ? v : ""; };
+function avatarHTML(p, color){
+  const ph = photoOf(p);
+  return `<button type="button" class="avatar" data-photo="${esc(p)}" style="--ac:${color}" title="${ph ? "Cambia la foto" : "Aggiungi una foto"} di ${esc(p)}">${ph ? `<img src="${ph}" alt="">` : `<span>${initials(p)}</span><small>+ foto</small>`}</button>`;
+}
+/* riquadro a sinistra, a destra due righe centrate: titolo + dati, poi i pulsanti */
+function detailHTML(av, title, info, btns){
+  return `${av}<div class="dbody"><div class="dline"><b>${title}</b>${info ? `<span>${info}</span>` : ""}</div>${btns ? `<div class="dact">${btns}</div>` : ""}</div>`;
+}
+const shortDay = k => { const [yy,mm,dd] = k.split("-").map(Number); return `${dd} ${MONTHS[mm-1].slice(0,3).toUpperCase()}`; };
 function renderDetail(){
   const el = $("detail"), s = state.sel;
   if(state.msel){
     const pairs = state.msel.pairs, ps = [...new Set(pairs.map(x => x.p))], ks = [...new Set(pairs.map(x => x.k))].sort();
-    const d = k => { const [yy,mm,dd] = k.split("-").map(Number); return `${dd} ${MONTHS[mm-1].toLowerCase()}`; };
-    const who = ps.length===1 ? esc(ps[0]) : `${ps.length} persone`;
+    const who = ps.length===1 ? esc(surname(ps[0])) : `${ps.length} persone`;
     const acts = state.cat==="turnazione"
       ? `${shiftBtns()}<button class="act" data-a="reset">Ripristina rotazione</button>
          <button class="act" data-a="copyday" style="--ac:var(--c-pres)">Copia nelle presenze</button><button class="act" data-a="note">Commento</button>`
       : presBtns(null, null);
-    el.innerHTML = `<span class="dnum" style="--ac:var(--accent)">${pairs.length}</span>
-      <span class="dtxt"><b>${who}, ${ks.length} ${ks.length===1 ? "giorno" : "giorni"} (dal ${d(ks[0])} al ${d(ks[ks.length-1])})</b><small>Quello che scegli vale per tutte le caselle selezionate (ferie, malattia e simili solo nei giorni lavorativi). Clicca una casella per togliere la selezione.</small></span>
-      <span class="dact">${acts}<button class="act" data-a="unsel">Annulla selezione</button></span>`;
+    const av = ps.length===1 ? avatarHTML(ps[0], "var(--accent)") : `<span class="avatar multi" style="--ac:var(--accent)"><span>${pairs.length}</span><small>caselle</small></span>`;
+    el.innerHTML = detailHTML(av, `${who} · ${shortDay(ks[0])}${ks.length>1 ? " – " + shortDay(ks[ks.length-1]) : ""}`,
+      `${ks.length} ${ks.length===1 ? "giorno" : "giorni"}: quello che scegli vale per tutte le caselle selezionate (ferie, malattia e simili solo nei giorni lavorativi)`,
+      `${acts}<button class="act" data-a="unsel">Annulla selezione</button>`);
     return;
   }
-  if(!s){ el.innerHTML = `<span class="dnum empty">–</span><span class="dtxt"><b>Seleziona un giorno</b><small>Clicca una casella o trascina col mouse su più giorni e più persone: qui sotto compaiono i turni e le altre voci da inserire.</small></span>` + (state.cat==="turnazione" ? `<span class="dact"><button class="act" data-a="copymonth" style="--ac:var(--c-pres)" title="Copia i turni previsti nelle presenze, solo nei giorni ancora vuoti">Copia ${state.span==="week" ? "la settimana" : "il mese"} nelle presenze</button></span>` : ""); return; }
-  const {p, k} = s, [yy,mm,dd] = k.split("-").map(Number), dow = (new Date(yy,mm-1,dd).getDay()+6)%7;
+  if(!s){
+    el.innerHTML = detailHTML(`<span class="avatar empty"><span>–</span></span>`, "Seleziona un giorno",
+      "clicca una casella o trascina col mouse su più giorni e più persone",
+      state.cat==="turnazione" ? `<button class="act" data-a="copymonth" style="--ac:var(--c-pres)" title="Copia i turni previsti nelle presenze, solo nei giorni ancora vuoti">Copia ${state.span==="week" ? "la settimana" : "il mese"} nelle presenze</button>` : "");
+    return;
+  }
+  const {p, k} = s, [yy] = k.split("-").map(Number), hol = holidays(yy)[k];
+  const title = `${esc(surname(p))} · ${shortDay(k)}${hol ? ` <em class="dhol">${esc(hol)}</em>` : ""}`;
   if(state.cat==="turnazione"){
     const v = turnOf(p,k), pl = planned(p,k), man = get("turnazione",p,k)!==undefined;
     const txt = [v ? `${TNAME[v]} (${SHIFTS[v].time})` : "nessun turno"];
     if(man) txt.push(`cambiato a mano, la rotazione prevede ${pl ? TNAME[pl] : "nessun turno"}`);
-    el.innerHTML = `<span class="dnum" style="--ac:${v ? `var(${SHIFTS[v].color})` : "var(--surface-3)"}">${dd}</span>
-      <span class="dtxt"><b>${esc(p)}, ${WDN[dow]} ${dd} ${MONTHS[mm-1].toLowerCase()}</b><small>${txt.join(", ")}</small></span>
-      <span class="dact">
-        ${shiftBtns()}
-        ${man ? `<button class="act" data-a="reset">Ripristina rotazione</button>` : ""}
-        ${holBtn(k)}
-        ${noteBtn(p,k)}
-        ${v ? `<button class="act" data-a="copyday" style="--ac:var(--c-pres)">Copia nelle presenze</button>` : ""}
-      </span>`;
+    el.innerHTML = detailHTML(avatarHTML(p, v ? `var(${SHIFTS[v].color})` : "var(--line-2)"), title, txt.join(", "),
+      `${shiftBtns()}
+       ${man ? `<button class="act" data-a="reset">Ripristina rotazione</button>` : ""}
+       ${holBtn(k)}
+       ${noteBtn(p,k)}
+       ${v ? `<button class="act" data-a="copyday" style="--ac:var(--c-pres)">Copia nelle presenze</button>` : ""}`);
     return;
   }
   const v = get("presenze",p,k), parts = [];
@@ -1113,14 +1138,30 @@ function renderDetail(){
   for(const a of absList(p,k)) parts.push(`${fmt(a.hours)} h ${absName(a,p,k)}`);
   if(isWorkday(k) && covered(p,k)<DAY_H && covered(p,k)>0) parts.push(`mancano ${fmt(DAY_H-covered(p,k))} h`);
   if(!parts.length) parts.push(isWorkday(k) ? "niente inserito" : "giorno non lavorativo, niente inserito");
-  const hol = holidays(yy)[k];
-  const color = v!==undefined && SHIFTS[sid(v)] ? `var(${SHIFTS[sid(v)].color})` : "var(--surface-3)";
-  el.innerHTML = `<span class="dnum" style="--ac:${color}">${dd}</span>
-    <span class="dtxt"><b>${esc(p)}, ${WDN[dow]} ${dd} ${MONTHS[mm-1].toLowerCase()}${hol?` (${hol})`:""}</b><small>${parts.join(", ")}</small></span>
-    <span class="dact">
-      ${presBtns(p, k)}
-    </span>`;
+  const color = v!==undefined && SHIFTS[sid(v)] ? `var(${SHIFTS[sid(v)].color})` : "var(--line-2)";
+  el.innerHTML = detailHTML(avatarHTML(p, color), title, parts.join(", "), presBtns(p, k));
 }
+/* caricamento della foto: ritagliata quadrata e rimpicciolita (resta leggera da salvare online) */
+const photoInput = document.createElement("input"); photoInput.type = "file"; photoInput.accept = "image/*"; photoInput.hidden = true; document.body.appendChild(photoInput);
+let photoFor = null;
+$("detail").addEventListener("click", e => {
+  const a = e.target.closest(".avatar[data-photo]"); if(!a) return;
+  photoFor = a.dataset.photo; photoInput.value = ""; photoInput.click();
+});
+photoInput.onchange = () => {
+  const file = photoInput.files[0], p = photoFor; if(!file || !p) return;
+  const img = new Image(), url = URL.createObjectURL(file);
+  img.onload = () => {
+    const S = 192, c = document.createElement("canvas"); c.width = c.height = S;
+    const m = Math.min(img.width, img.height);
+    c.getContext("2d").drawImage(img, (img.width-m)/2, (img.height-m)/2, m, m, 0, 0, S, S);
+    URL.revokeObjectURL(url);
+    const d = c.toDataURL("image/jpeg", 0.82);
+    commit(() => { data.foto ??= {}; data.foto[p] = d; });
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); alertMsg("Non riesco ad aprire questa immagine."); };
+  img.src = url;
+};
 
 function render(){
   document.body.dataset.cat = state.cat;
@@ -2097,7 +2138,7 @@ function applyTheme(t){
   $("themeBtn").innerHTML = light ? MOON : SUN;
   $("themeBtn").title = light ? "Passa al tema scuro" : "Passa al tema chiaro";
   $("themeBtn").setAttribute("aria-label", light ? "Passa al tema scuro" : "Passa al tema chiaro");
-  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", light ? "#F3F5F8" : "#131922");
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", light ? "#F3F5F8" : "#08090B");
 }
 $("themeBtn").onclick = () => { const t = document.documentElement.dataset.theme==="light" ? "dark" : "light"; lsSet(THEME_KEY, t); applyTheme(t); };
 applyTheme(lsGet(THEME_KEY) || "dark");
