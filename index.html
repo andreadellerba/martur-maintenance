@@ -375,7 +375,7 @@ body:not(.locked) .lock{display:none}
 .inst-txt small{font-size:13px;color:var(--muted);line-height:1.4}
 .inst-act{display:flex;flex-direction:column;gap:6px}
 
-@media (max-width:1080px){
+@media (max-width:1320px){
   .hdr{grid-template-columns:1fr;height:auto;padding:10px 12px;gap:8px;justify-items:center}
   .brand,.pills,.hdr-r{grid-column:1;justify-self:center}
 }
@@ -520,8 +520,8 @@ body:not(.locked) .lock{display:none}
 
 <script>
 const CATS = [
-  {id:"presenze", label:"PRESENZE", hint:"Clicca una casella o trascina col mouse su più giorni e persone, poi scegli il turno o la voce nella barra qui sopra. Tasti: 1–5 turni, 6 orario manuale, 0 svuota, Esc deseleziona, Ctrl+Z annulla."},
-  {id:"turnazione", label:"TURNAZIONE", hint:"Turni previsti dalla rotazione settimanale (da lunedì 28 settembre 2026). Per cambiarli seleziona le caselle e scegli il turno nella barra qui sopra (tasti 1, 2, 3, 0 per svuotare). Con Copia nelle presenze li riporti nel calendario vero."},
+  {id:"presenze", label:"GESTIONE PRESENZE", hint:"Clicca una casella o trascina col mouse su più giorni e persone, poi scegli il turno o la voce nella barra qui sopra. Tasti: 1–5 turni, 6 orario manuale, 0 svuota, Esc deseleziona, Ctrl+Z annulla."},
+  {id:"turnazione", label:"ROTAZIONE TURNI", hint:"Turni previsti dalla rotazione settimanale (da lunedì 28 settembre 2026). Per cambiarli seleziona le caselle e scegli il turno nella barra qui sopra (tasti 1, 2, 3, 0 per svuotare). Con Copia nelle presenze li riporti nel calendario vero."},
   {id:"straordinario", label:"STRAORDINARIO", hint:"Lo straordinario dei turni si calcola da solo dalle presenze. Clicca una casella o trascina su più giorni per aggiungere ore in più a mano. A destra i totali per settimana e per mese."},
   {id:"ferie", label:"FERIE / PAR", hint:"Si compila da sola quando assegni le ore mancanti di una giornata. Clicca una casella o trascina su più giorni per inserire o correggere a mano."},
   {id:"malattia", label:"MALATTIA", hint:"Clicca una casella o trascina su più giorni, poi scegli le ore (8 h = giornata intera)."},
