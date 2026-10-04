@@ -465,8 +465,8 @@ body:not(.locked) .lock{display:none}
 
 <script>
 const CATS = [
-  {id:"presenze", label:"PRESENZE", hint:"Clicca una casella o trascina col mouse su più giorni e persone, poi scegli il turno o la voce nella barra qui sopra. Tasti: 1–5 turni, 6 orario manuale, 0 togli turno, Esc deseleziona, Ctrl+Z annulla."},
-  {id:"turnazione", label:"TURNAZIONE", hint:"Turni previsti dalla rotazione settimanale (da lunedì 28 settembre 2026). Per cambiarli seleziona le caselle e scegli il turno nella barra qui sopra (tasti 1, 2, 3, 0 per togliere). Con Copia nelle presenze li riporti nel calendario vero."},
+  {id:"presenze", label:"PRESENZE", hint:"Clicca una casella o trascina col mouse su più giorni e persone, poi scegli il turno o la voce nella barra qui sopra. Tasti: 1–5 turni, 6 orario manuale, 0 svuota, Esc deseleziona, Ctrl+Z annulla."},
+  {id:"turnazione", label:"TURNAZIONE", hint:"Turni previsti dalla rotazione settimanale (da lunedì 28 settembre 2026). Per cambiarli seleziona le caselle e scegli il turno nella barra qui sopra (tasti 1, 2, 3, 0 per svuotare). Con Copia nelle presenze li riporti nel calendario vero."},
   {id:"straordinario", label:"STRAORDINARIO", hint:"Lo straordinario dei turni si calcola da solo dalle presenze. Clicca una casella o trascina su più giorni per aggiungere ore in più a mano. A destra i totali per settimana e per mese."},
   {id:"ferie", label:"FERIE / PAR", hint:"Si compila da sola quando assegni le ore mancanti di una giornata. Clicca una casella o trascina su più giorni per inserire o correggere a mano."},
   {id:"malattia", label:"MALATTIA", hint:"Clicca una casella o trascina su più giorni, poi scegli le ore (8 h = giornata intera)."},
@@ -1056,7 +1056,7 @@ function shiftBtns(){
   const tu = state.cat==="turnazione";
   const list = tu ? ["1","2","C"] : PRES_ORDER;
   return list.map((k,i) => `<button class="act" draggable="true" data-a="shift" data-s="${k}" style="--ac:var(${SHIFTS[k].color})" title="Clicca o trascina su una casella (tasto ${i+1})">${tu ? TNAME[k] : SHIFTS[k].time}</button>`).join("")
-    + `<button class="act" draggable="true" data-a="shift" data-s="X" style="--ac:var(--weekend)" title="Toglie solo il turno, il resto del giorno resta (tasto 0)">Togli turno</button>`;
+    + (tu ? `<button class="act clear" draggable="true" data-a="shift" data-s="X" title="Toglie il turno (tasto 0)">Svuota</button>` : "");   /* in presenze c'è Svuota in fondo */
 }
 /* barra di presenze: stesso ordine per un giorno e per più caselle */
 function presBtns(p, k){
@@ -1071,7 +1071,7 @@ function presBtns(p, k){
     <button class="act" data-a="mensa" style="--ac:var(--c-men)">Pausa mensa</button>
     ${one ? holBtn(k) : ""}
     ${one ? noteBtn(p,k) : `<button class="act" data-a="note">Commento</button>`}
-    <button class="act clear" data-a="clear" title="Toglie tutto: turno, assenze, straordinario e commento">Svuota</button>`;
+    <button class="act clear" data-a="clear" title="Toglie tutto: turno, assenze, straordinario e commento (tasto 0)">Svuota</button>`;
 }
 function renderDetail(){
   const el = $("detail"), s = state.sel;
@@ -1416,6 +1416,7 @@ document.addEventListener("keydown", e => {
   const map = state.cat==="turnazione" ? {"1":"1","2":"2","3":"C","0":"X"} : {"1":"1L","2":"1","3":"2","4":"2L","5":"C","6":"M","0":"X"};
   if(!map[e.key] || (!state.sel && !state.msel)) return;
   if(map[e.key]==="M"){ if(state.msel){ const w = state.msel.pairs.filter(x => isWorkday(x.k)); if(w.length) openTimeMulti(w); } else openTime(state.sel.k); return; }
+  if(map[e.key]==="X" && state.cat==="presenze"){ document.querySelector('#detail [data-a="clear"]')?.click(); return; }
   applyShift(map[e.key]);
 });
 
