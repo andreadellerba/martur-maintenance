@@ -237,6 +237,7 @@ dialog::backdrop{background:var(--backdrop)}
 .news h3{margin:0 0 4px;font-family:var(--display);font-size:18px;font-weight:700;letter-spacing:.02em;color:var(--c-pres)}
 .news ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
 .news li{font-size:14px;line-height:1.45;color:var(--text)}
+.news b{color:var(--text);font-weight:700}
 dialog h2{font-family:var(--display);font-size:30px;font-weight:700;margin:0 0 4px}
 dialog p{margin:0 0 14px;color:var(--muted);font-size:14px}
 dialog input{width:100%;font:inherit;font-size:22px;padding:10px 12px;border:1px solid var(--line-2);border-radius:8px;background:var(--surface-2);color:var(--text)}
@@ -528,41 +529,46 @@ body:not(.locked) .lock{display:none}
 </dialog>
 <dialog id="newsDlg" aria-labelledby="newsTitle">
   <h2 id="newsTitle">Novità dell'app</h2>
-  <p>Ecco cosa è cambiato. Questo messaggio compare una volta sola; lo ritrovi in Impostazioni.</p>
+  <p>Le modifiche del 4 ottobre 2026. Questo messaggio compare una volta sola: lo ritrovi in Impostazioni.</p>
   <div class="news">
-    <section><h3>Accesso e dati</h3><ul>
-      <li>Si entra con email e password e l'app ricorda l'accesso sul dispositivo.</li>
-      <li>I dati si salvano online da soli e sono gli stessi su ogni computer o telefono. Senza internet funziona lo stesso e si sincronizza dopo.</li>
+    <section><h3>Commenti su ogni casella</h3><ul>
+      <li>Nella barra c'è il pulsante <b>Commento</b>: scrivi un commento su qualsiasi giorno, in tutte le schede (in Straordinario, CIGO, Visita e Mensa il campo è nel popup delle ore).</li>
+      <li>Il commento si legge fermando il mouse sulla casella. La casella con un commento ha un asterisco <b>*</b> in alto a sinistra.</li>
     </ul></section>
-    <section><h3>Calendario più chiaro</h3><ul>
-      <li>Nelle caselle dei turni l'orario è scritto per intero, dalle e alle (07:00 / 15:00). In fondo, nella fascia scura, le altre voci con le ore: PAR 1H, +0,5H di straordinario, −2H se mancano ore.</li>
-      <li>Giorno incompleto: pallino rosso in alto al centro della casella.</li>
-      <li>Ferie, PAR, malattia, CIGO e straordinario scritti in grande e in maiuscolo (per esempio + / FER / 8 / ORE).</li>
-      <li>Sabati e domeniche vuoti si stringono e lasciano spazio agli altri giorni. I festivi sono tutti rossi, con una F grande.</li>
-      <li>Sotto ogni nome: giorni, ore lavorate e le altre voci del mese (ore extra, ferie, PAR, malattia, CIGO). Il totale a destra non c'è più.</li>
-      <li>Sopra il calendario il numero della settimana (W40, W41…). Tema scuro più nero, per più contrasto.</li>
+    <section><h3>Navigazione in alto</h3><ul>
+      <li>Accanto a «Oggi» la tendina <b>Mensile / Settimanale</b>. In settimanale il titolo è «Week 41» e le caselle sono grandi.</li>
+      <li>Il selettore accanto porta subito a qualsiasi mese o settimana, anche lontani.</li>
+      <li>Data e filtri dei nomi stanno sulla stessa riga, centrati.</li>
     </ul></section>
-    <section><h3>Barra sopra il calendario</h3><ul>
-      <li>Qui ci sono i turni, da cliccare o da trascinare sulle caselle, e tutte le voci: orario manuale, ferie e PAR, malattia, straordinario, CIGO, visita medica, pausa mensa, festività, commento.</li>
-      <li>La ✕ svuota il giorno. Il riquadro a sinistra mostra la foto del dipendente: cliccalo per caricarla.</li>
+    <section><h3>Barra dei pulsanti</h3><ul>
+      <li>Ora sta <b>sopra il calendario</b>, allineata a sinistra. I pulsanti dei turni in alto non ci sono più.</li>
+      <li>Ordine: 05:30-14:00, 06:00-14:00, 14:00-22:00, 14:00-22:30, 07:00-15:00, Orario manuale, Ferie / PAR, Malattia, Straordinario, CIGO, Visita medica, Pausa mensa, Festività, Commento, <b>✕</b>.</li>
+      <li>I turni si vedono anche senza giorno selezionato: si cliccano o si <b>trascinano</b> su una casella. Lasciati su una selezione valgono per tutta la selezione.</li>
+      <li>«Togli turno» è stato tolto: la <b>✕</b> svuota il giorno (turno, assenze, straordinario e commento).</li>
+      <li>A sinistra il <b>riquadro della foto</b> del dipendente: cliccalo per caricarla. Accanto cognome e data corta (GENCO · 23 OTT) e i dati del giorno.</li>
+      <li>Tasti: 1 = 05:30-14:00, 2 = 06:00-14:00, 3 = 14:00-22:00, 4 = 14:00-22:30, 5 = 07:00-15:00, 6 = orario manuale, 0 = svuota, Esc = deseleziona.</li>
     </ul></section>
-    <section><h3>Selezionare più giorni</h3><ul>
-      <li>Trascina col mouse per selezionare più giorni e più persone insieme: quello che scegli vale per tutte le caselle selezionate.</li>
-      <li>Un secondo clic sulla casella toglie la selezione. Tasti: 1–5 turni, 6 orario manuale, 0 svuota, Esc deseleziona, Ctrl+Z annulla.</li>
+    <section><h3>Caselle del calendario</h3><ul>
+      <li>Turni scritti per intero, dalle e alle: <b>07:00 / 15:00</b>. Lo stesso disegno anche in Rotazione turni.</li>
+      <li>Sotto l'orario, nella fascia scura, gli extra con le ore: <b>PAR 1H</b>, <b>+0,5H</b> di straordinario, <b>−2H</b> se mancano ore.</li>
+      <li>Giorno incompleto: <b>pallino rosso</b> con bordo nero in alto al centro.</li>
+      <li>Assenze di tutta la giornata più grandi: <b>CIGO / 8 ORE</b>, <b>FER / 8 ORE</b>.</li>
+      <li>Nelle schede Straordinario, Ferie / PAR, Malattia e CIGO: <b>+ / FER / 8 / ORE</b>, tutto maiuscolo e centrato. Visita medica compare anche in Ferie / PAR.</li>
     </ul></section>
-    <section><h3>Nuove voci e opzioni</h3><ul>
-      <li>Visita medica e pausa mensa (proposta da 30 minuti).</li>
-      <li>Commenti su ogni casella: si leggono fermando il mouse sopra, e un asterisco * indica che c'è un commento.</li>
-      <li>Per ferie, PAR e malattia: «Anno precedente» (AP) e «Contalo come CIGO», che nel report sposta quelle ore nella colonna CIGO.</li>
-      <li>Orario manuale: le ore inserite contano come lavorate, lo straordinario parte solo oltre le 8 ore.</li>
+    <section><h3>Weekend e festivi</h3><ul>
+      <li>Sabati e domeniche vuoti diventano <b>colonne strette</b>; se qualcuno ci lavora tornano normali.</li>
+      <li>Festivi: <b>tutta la colonna rossa</b>, anche la data in alto, con una <b>F</b> grande nera nelle caselle vuote. Se inserisci un turno resta la scritta FEST.</li>
+      <li>Nel PDF della rotazione turni i festivi mostrano il giorno in alto e la F nella casella.</li>
     </ul></section>
-    <section><h3>Festività</h3><ul>
-      <li>Aggiunto il 4 ottobre (San Francesco). Con il pulsante Festività si inserisce una festività aziendale, valida per tutto il reparto.</li>
+    <section><h3>Nomi e totali</h3><ul>
+      <li>Le colonne dei totali a destra sono state tolte in Gestione presenze e Rotazione turni: le caselle sono più larghe.</li>
+      <li>Sotto il nome, tutto maiuscolo: <b>F. COPERTINO</b> su una riga, poi <b>19 GG · 151 ORE</b>, poi <b>+8,5 ORE EXTRA</b>, <b>+1 H PAR</b>, <b>+24 ORE CIGO</b> (solo le voci presenti).</li>
+      <li>Il dipendente selezionato ha il nome in rosso.</li>
     </ul></section>
-    <section><h3>Viste, stampa e impostazioni</h3><ul>
-      <li>Vista mensile o settimanale, e un selettore per saltare subito a qualsiasi mese o settimana.</li>
-      <li>Il PDF della rotazione turni esce in A3 con 4 mesi, 2 per riga.</li>
-      <li>Il menu ora ha GESTIONE PRESENZE, ROTAZIONE TURNI e la nuova pagina IMPOSTAZIONI, dove si sceglie il tema chiaro o scuro e si cambiano i colori di turni e voci.</li>
+    <section><h3>Colori, menu e impostazioni</h3><ul>
+      <li>Colori di turni e voci più accesi, sfondo quasi nero, sabati e domeniche più accesi. Oggi è rosso se cade in un festivo.</li>
+      <li>Nel menu: <b>GESTIONE PRESENZE</b>, <b>ROTAZIONE TURNI</b> e la nuova <b>IMPOSTAZIONI</b>.</li>
+      <li>In Impostazioni si sceglie il tema chiaro o scuro (il pulsante in alto a destra non c'è più) e si cambia il colore di ogni turno e voce, scegliendo tra 34 colori accesi.</li>
     </ul></section>
   </div>
   <div class="dlg-actions"><button type="button" class="btn primary" id="newsOk">Ho capito</button></div>
@@ -2353,7 +2359,7 @@ $("settings").addEventListener("click", e => {
 });
 
 /* novità: compaiono una volta per ogni aggiornamento, poi si riaprono da Impostazioni */
-const NEWS_KEY = "registro-novita", NEWS_VER = "2026-10-04";
+const NEWS_KEY = "registro-novita", NEWS_VER = "2026-10-04b";
 function showNews(force){ if(force || lsGet(NEWS_KEY)!==NEWS_VER){ if(!$("newsDlg").open) $("newsDlg").showModal(); $("newsDlg").scrollTop = 0; } }
 $("newsOk").onclick = () => { lsSet(NEWS_KEY, NEWS_VER); $("newsDlg").close(); };
 $("newsDlg").addEventListener("close", () => lsSet(NEWS_KEY, NEWS_VER));
