@@ -120,6 +120,8 @@ select.today,.jump{background:var(--surface);color:var(--text);font:inherit;font
 .cell.lg .hn{position:absolute;top:7px;right:8px;max-width:calc(100% - 36px);margin:0;font-size:10px;padding:2px 5px;text-overflow:ellipsis}
 .dh.now{color:var(--today);background:color-mix(in srgb,var(--today) 14%,transparent);box-shadow:inset 0 -3px 0 var(--today)}
 .dh.now span{opacity:1}
+.dh.now.we{color:var(--weekend-ink);background:var(--weekend-bg);box-shadow:inset 0 -3px 0 var(--weekend)}
+.cell.now.we{box-shadow:inset 0 3px 0 var(--weekend)}
 .cell.now{box-shadow:inset 0 3px 0 var(--today)}
 .th{white-space:nowrap;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:6px;font-size:10px;font-weight:700;line-height:1.1;text-align:center}
 .th small{font-size:9px;font-weight:500;color:var(--faint);white-space:nowrap}
@@ -950,7 +952,7 @@ function renderSingle(p){
   $("matrix").innerHTML = html;
   $("matrix").classList.add("one");
 }
-/* sabati, domeniche e festivi senza niente inserito: colonna stretta (resta solo il numero) */
+/* sabati e domeniche senza niente inserito: colonna stretta (resta solo il numero) */
 function dayHasData(p, k){
   const cat = state.cat;
   if(cat==="turnazione") return !!turnOf(p,k) || !!noteOf(p,k);
@@ -958,7 +960,7 @@ function dayHasData(p, k){
   if(cat==="ferie") return hoursOf("ferie",p,k)>0 || visH(p,k)>0;
   return hoursOf(cat,p,k)>0;
 }
-const narrowDay = (x, hol, ps = PEOPLE) => (x.dow>4 || !!hol[x.key]) && !ps.some(p => dayHasData(p, x.key));
+const narrowDay = (x, hol, ps = PEOPLE) => x.dow>4 && !ps.some(p => dayHasData(p, x.key));   /* solo sabato e domenica */
 function renderMatrix(){
   if(state.view){ renderSingle(state.view); return; }
   $("matrix").classList.remove("one");
@@ -1132,9 +1134,13 @@ function renderDetail(){
     return;
   }
   if(!s){
+    /* niente selezionato: i turni restano qui, pronti da trascinare sulle caselle */
+    const tu = state.cat==="turnazione", pr = state.cat==="presenze";
+    const btns = (tu || pr ? shiftBtns().replace(/<button class="act clear"[^]*?<\/button>/, "") : "")
+      + (pr ? `<button class="act" draggable="true" data-a="time" data-s="M" title="Trascina su una casella">Orario manuale</button>` : "")
+      + (tu ? `<button class="act" data-a="copymonth" style="--ac:var(--c-pres)" title="Copia i turni previsti nelle presenze, solo nei giorni ancora vuoti">Copia ${state.span==="week" ? "la settimana" : "il mese"} nelle presenze</button>` : "");
     el.innerHTML = detailHTML(`<span class="avatar empty"><span>–</span></span>`, "Seleziona un giorno",
-      "clicca una casella o trascina col mouse su più giorni e più persone",
-      state.cat==="turnazione" ? `<button class="act" data-a="copymonth" style="--ac:var(--c-pres)" title="Copia i turni previsti nelle presenze, solo nei giorni ancora vuoti">Copia ${state.span==="week" ? "la settimana" : "il mese"} nelle presenze</button>` : "");
+      tu || pr ? "trascina un turno su una casella, oppure clicca o trascina col mouse sulle caselle per selezionarle" : "clicca una casella o trascina col mouse su più giorni e più persone", btns);
     return;
   }
   const {p, k} = s, [yy] = k.split("-").map(Number), hol = holidays(yy)[k];
@@ -1434,7 +1440,7 @@ function applyShift(s){
     commit(() => { ps.forEach(({p,k}) => setShift(p, k, v)); state.msel = null; });
     return;
   }
-  if(!state.sel) return;
+  if(!state.sel){ alertMsg("Trascina il turno su una casella, oppure seleziona prima le caselle."); return; }
   const {p,k} = state.sel;
   commit(() => setShift(p, k, v));
 }
