@@ -96,8 +96,10 @@ select.today,.jump{background:var(--surface);color:var(--text);font:inherit;font
 .board{padding:0 16px;overflow-x:auto}
 .matrix{min-width:980px;display:flex;flex-direction:column;gap:4px}
 .row{display:grid;grid-template-columns:var(--cols);gap:3px}
-.wkl{text-align:center;font-size:11px;font-weight:800;letter-spacing:.05em;color:var(--muted-2);padding:2px 0 3px;border-bottom:2px solid var(--line-2);white-space:nowrap;overflow:hidden}
-.head{height:58px}
+.wkl{text-align:center;font-size:11px;font-weight:800;letter-spacing:.05em;color:var(--muted-2);padding:2px 0 3px;border-bottom:2px solid var(--line-2);white-space:nowrap;overflow:hidden;container-type:inline-size}
+.wkl .ws{display:none}
+@container (max-width:64px){.wkl .wl{display:none}.wkl .ws{display:inline}}
+.head{height:40px}
 .hname,.fname{display:flex;align-items:flex-end;padding:0 0 6px 6px;font-size:12px;color:var(--faint);font-weight:600}
 .fname{align-items:center;padding:0 0 0 6px;font-size:13px;font-weight:700;color:var(--muted-2)}
 .dh{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:4px;border-radius:6px;color:var(--muted-2);line-height:1.05}
@@ -158,8 +160,8 @@ select.today,.jump{background:var(--surface);color:var(--text);font:inherit;font
 .cell.lg .stk b.n,.wkv .cell .stk b.n{font-size:24px}
 .cell.lg .stk b.m,.wkv .cell .stk b.m{font-size:16px}
 .cell.holfill{background:var(--weekend);border-color:var(--weekend)}
-.cell .hf{font-family:var(--display);font-size:22px;font-weight:800;line-height:1;color:var(--on-fill)}
-.cell.lg .hf,.wkv .cell .hf{font-size:34px}
+.cell .hf{font-family:var(--display);font-size:15px;font-weight:800;line-height:1;color:var(--on-fill)}
+.cell.lg .hf,.wkv .cell .hf{font-size:20px}
 .cell.holfill .hn{background:transparent;color:var(--on-fill)}
 .cell.nar.lg.hol::after{display:none}
 .dh.hol,.dh.hol.now{background:var(--weekend);color:var(--on-fill);box-shadow:none}
@@ -1102,7 +1104,8 @@ function renderMatrix(){
   let html = `<div class="row wkrow"><div></div>`;
   for(let i=0; i<days.length; ){
     let n = 1; while(i+n<days.length && days[i+n].row===days[i].row) n++;
-    html += `<div class="wkl" style="grid-column:span ${n}">W${isoWeek(days[i].key)}</div>`;
+    const w = isoWeek(days[i].key);
+    html += `<div class="wkl" style="grid-column:span ${n}"><span class="wl">WEEK ${w}</span><span class="ws">W ${w}</span></div>`;
     i += n;
   }
   html += (cols.length ? `<div style="grid-column:span ${cols.length}"></div>` : "") + `</div>`;
