@@ -148,6 +148,18 @@ select.today,.jump{background:var(--surface);color:var(--text);font:inherit;font
 .cell .xs{font-size:8px;letter-spacing:.02em;opacity:.8}
 .cell .man{position:absolute;top:3px;right:3px;width:6px;height:6px;border-radius:50%;background:var(--text);box-shadow:0 0 0 2px var(--bg)}
 .cell.shift{background:var(--ac);border-color:transparent;color:var(--on-fill)}
+.cell .stk{display:flex;flex-direction:column;align-items:center;gap:2px;font-family:var(--display);line-height:1;text-transform:uppercase;text-align:center}
+.cell .stk b{font-size:11px;font-weight:700;white-space:nowrap}
+.cell .stk b.n{font-size:17px;font-weight:800}
+.cell .stk b.m{font-size:11.5px;font-weight:800}
+.cell.lg .stk b,.wkv .cell .stk b{font-size:14px}
+.cell.lg .stk b.n,.wkv .cell .stk b.n{font-size:24px}
+.cell.lg .stk b.m,.wkv .cell .stk b.m{font-size:16px}
+.cell.holfill{background:var(--weekend);border-color:var(--weekend)}
+.cell.holfill .fest{background:var(--on-fill);color:var(--weekend)}
+.cell.holfill .dn{color:var(--on-fill)!important}
+.cell .missc{position:absolute;top:3px;left:50%;transform:translateX(-50%);width:10px;height:10px;border-radius:50%;background:var(--weekend);border:2px solid #000;box-sizing:border-box;z-index:1}
+.cell.lg .missc{width:13px;height:13px;top:6px}
 .cell.tfx{justify-content:flex-start;overflow:hidden;gap:0}
 .cell.tfx .tm{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
 .cell.tfx .tm b{font-family:var(--display);font-size:14px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
@@ -182,14 +194,14 @@ select.today,.jump{background:var(--surface);color:var(--text);font:inherit;font
 .tc.total{background:transparent;font-size:12px}
 
 /* dettaglio del giorno */
-.detail{margin:0 16px 12px;display:flex;align-items:center;justify-content:center;gap:16px;padding:12px 16px;background:var(--surface);border:1px solid var(--line);border-radius:14px}
+.detail{margin:0 16px 12px;display:flex;align-items:center;justify-content:flex-start;gap:16px;padding:12px 16px;background:var(--surface);border:1px solid var(--line);border-radius:14px}
 .avatar{--ac:var(--line-2);width:80px;height:80px;flex-shrink:0;border-radius:14px;border:3px solid var(--ac);background:var(--surface-2);color:var(--muted-2);padding:0;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:var(--display);cursor:pointer}
 .avatar span{font-size:26px;font-weight:700;line-height:1}
 .avatar small{font-family:var(--body);font-size:10px;font-weight:600;color:var(--faint)}
 .avatar img{width:100%;height:100%;object-fit:cover;display:block}
 .avatar.empty,.avatar.multi{cursor:default}
 .avatar.multi span{color:var(--ac)}
-.dbody{flex:0 1 auto;min-width:0;min-height:80px;display:flex;flex-direction:column;justify-content:center;gap:10px}
+.dbody{flex:1;min-width:0;min-height:80px;display:flex;flex-direction:column;justify-content:center;gap:10px}
 .dline{display:flex;align-items:baseline;gap:14px;white-space:nowrap;overflow:hidden;min-width:0}
 .dline b{font-size:16px;font-family:var(--display);letter-spacing:.02em;flex-shrink:0}
 .dline span{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis}
@@ -898,41 +910,45 @@ function cellHTML(p, x, hol, big){
       if(ot){ band.push(`<span class="bx" style="--mc:var(--c-stra)">+${fmt(ot)}H</span>`); aria += `, straordinario ${fmt(ot)} ore`; }
       const miss = isWorkday(k) && covered(p,k)>0 && covered(p,k)<DAY_H ? DAY_H - covered(p,k) : 0;
       if(miss){ band.push(`<span class="bx" style="--mc:var(--weekend)" title="Mancano ${fmt(miss)} ore">−${fmt(miss)}H</span>`); aria += `, mancano ${fmt(miss)} ore`; }
-      inner = `<span class="tm"><b>${hhmm(a)}</b><i class="sep"></i><b>${hhmm(b)}</b></span>` + (band.length ? `<span class="band">${band.join("")}</span>` : "");
+      const missDot = miss ? `<span class="missc" title="Mancano ${fmt(miss)} ore"></span>` : "";
+      inner = missDot + `<span class="tm"><b>${hhmm(a)}</b><i class="sep"></i><b>${hhmm(b)}</b></span>` + (band.length ? `<span class="band">${band.join("")}</span>` : "");
       aria += `, turno ${timeLabel(v)}`;
     }
     if(!cls.includes("tfx")){
       if(ot) { inner += `<span class="ot">${fmt(ot).length>3 ? fmt(ot) : "+"+fmt(ot)}</span>`; aria += `, straordinario ${fmt(ot)} ore`; }
-      if(isWorkday(k) && covered(p,k)>0 && covered(p,k)<DAY_H){ inner += `<span class="miss" title="Mancano ${fmt(DAY_H-covered(p,k))} ore"></span>`; aria += `, mancano ${fmt(DAY_H-covered(p,k))} ore`; }
+      if(isWorkday(k) && covered(p,k)>0 && covered(p,k)<DAY_H){ inner += `<span class="missc" title="Mancano ${fmt(DAY_H-covered(p,k))} ore"></span>`; aria += `, mancano ${fmt(DAY_H-covered(p,k))} ore`; }
     }
   } else {
+    /* schede delle ore: "+", le ore, la voce, "ORE", uno sotto l'altro e centrati */
+    const stk = rows => `<span class="stk">${rows.map(r => `<b class="${r[1]||""}">${r[0]}</b>`).join("")}</span>`;
     if(cat==="ferie"){
-      const f = ferF(p,k), pp = ferP(p,k);
-      if(f+pp>0){
-        cls.push("val"); style = `--ac:var(${f>=pp?"--c-ferie":"--c-par"})`;
-        inner = f && pp ? `<span class="t1 sm">F${fmt(f)}</span><span class="t2 sm">P${fmt(pp)}</span>` : `<span class="t1 sm">${f?"FER":"PAR"}</span>${(f?ferA:parA)(p,k) ? `<span class="ap">AP</span>` : ""}<span class="t2">${fmt(f||pp)}</span>`;
-        aria += `, ferie${ferA(p,k)?" AP":""} ${fmt(f)} ore, PAR${parA(p,k)?" AP":""} ${fmt(pp)} ore`;
-      }
-      /* anche la visita medica si vede qui */
-      const vh = visH(p,k);
-      if(vh>0){
-        if(f+pp>0) inner += `<span class="mk" style="--mc:var(--c-vis)">V${fmt(vh)}</span>`;
-        else { cls.push("val"); style = `--ac:var(--c-vis)`; inner = `<span class="t1 sm">VIS</span><span class="t2">${fmt(vh)}</span>`; }
-        aria += `, visita medica ${fmt(vh)} ore`;
+      const f = ferF(p,k), pp = ferP(p,k), vh = visH(p,k);
+      const parts = [];
+      if(f) parts.push(["FER" + (ferA(p,k) ? " AP" : ""), f, "--c-ferie"]);
+      if(pp) parts.push(["PAR" + (parA(p,k) ? " AP" : ""), pp, "--c-par"]);
+      if(vh) parts.push(["VIS", vh, "--c-vis"]);
+      if(parts.length){
+        cls.push("val"); style = `--ac:var(${parts[0][2]})`;
+        inner = parts.length===1
+          ? stk([["+"], [fmt(parts[0][1]), "n"], [parts[0][0]], ["ORE"]])
+          : stk([["+"], ...parts.map(x => [`${fmt(x[1])} ${x[0]}`, "m"]), ["ORE"]]);
+        aria += `, ${parts.map(x => `${x[0]} ${fmt(x[1])} ore`).join(", ")}`;
       }
     } else {
       const h = hoursOf(cat,p,k);
       if(h>0){
         cls.push("val"); style = `--ac:${CATCOL[cat]}`;
-        inner = `<span class="t1">${fmt(h)}</span>` + (cat==="malattia" && malE(p,k).a==="AP" ? `<span class="ap">AP</span>` : "");
-        if(cat==="straordinario"){ const e = otExtra(p,k); inner += `<span class="t2 sm">${e && otAuto(p,k) ? "t+m" : e ? "man." : "turno"}</span>`; }
+        const lab = cat==="malattia" ? "MAL" + (malE(p,k).a==="AP" ? " AP" : "") : cat==="cigo" ? "CIGO" : "";
+        inner = stk([["+"], [fmt(h), "n"], ...(lab ? [[lab]] : []), ["ORE"]]);
         aria += `, ${fmt(h)} ore`;
       }
     }
   }
   /* festivo: "FEST" resta anche se ci metti un turno, e prende il colore della casella */
   if(hol[k]){ cls.push("hol"); aria += `, festivo (${hol[k]})`; if(!big) inner = `<span class="fest" title="${hol[k]}"></span>` + inner; }
-  if((cat==="presenze" || cat==="turnazione") && hasNote(p,k)) inner += `<span class="star" aria-hidden="true">*</span>`;
+  /* festivo senza niente inserito: casella tutta rossa */
+  if(hol[k] && !cls.some(c => c==="shift" || c==="val" || c==="abs")) cls.push("holfill");
+  if(hasNote(p,k)) inner += `<span class="star" aria-hidden="true">*</span>`;
   if(big){ cls.push("lg"); inner = `<span class="dn">${x.d}</span>` + (hol[k] ? `<span class="fest hn">FEST · ${hol[k]}</span>` : "") + inner; }
   return `<button class="${cls.join(" ")}" data-p="${esc(p)}" data-date="${k}" style="${style}" aria-label="${esc(aria)}">${inner}</button>`;
 }
