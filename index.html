@@ -301,7 +301,7 @@ body:not(.locked) .lock{display:none}
 /* vista */
 .viewbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 .vb-l{font-size:12px;font-weight:700;color:var(--faint);margin-right:4px;letter-spacing:.04em;text-transform:uppercase}
-.vb{height:30px;padding:0 12px;border:1px solid var(--line-2);border-radius:999px;background:transparent;color:var(--btn-text);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.vb{height:32px;padding:0 12px;border:1px solid var(--line-2);border-radius:8px;background:transparent;color:var(--btn-text);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;text-transform:uppercase}
 .vb:hover{background:var(--surface-2)}
 .vb[aria-pressed="true"]{background:var(--text);border-color:var(--text);color:var(--bg)}
 .matrix.one{min-width:0;max-width:1100px;margin:0 auto;gap:12px}
@@ -1041,7 +1041,7 @@ function cellHTML(p, x, hol, big){
 
 /* scelta della vista: tutto il reparto o una persona sola */
 function renderViewbar(){
-  const opts = [[null,"Tutto il reparto"], ...PEOPLE.map(p => [p, surname(p)])];
+  const opts = [[null,"TUTTI"], ...PEOPLE.map(p => [p, surname(p)])];
   $("viewbar").innerHTML = `<span class="vb-l">Vista</span>` + opts.map(([k,l]) =>
     `<button class="vb" data-v="${k ? esc(k) : ""}" aria-pressed="${state.view===k}">${esc(l)}</button>`).join("");
 }
