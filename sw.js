@@ -1,5 +1,5 @@
 /* Tiene l'app disponibile anche senza internet */
-const CACHE = "presenze-v46";
+const CACHE = "presenze-v47";
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png", "./favicon-48.png"];
 /* oltre ai file dell'app salvo solo font e librerie: le connessioni a Firebase (login, dati) passano dirette */
 const CDN = ["fonts.googleapis.com", "fonts.gstatic.com", "www.gstatic.com", "cdn.jsdelivr.net", "cdnjs.cloudflare.com"];
