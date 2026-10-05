@@ -428,7 +428,7 @@ body:not(.locked) .lock{display:none}
   .board{overflow-x:auto;-webkit-overflow-scrolling:touch}
   .matrix{--namew:118px;--cmin:38px;min-width:0;width:max-content}
   .matrix:not(.one) .pname,.matrix:not(.one) .hname,.matrix:not(.one) .fname{position:sticky;left:0;z-index:3;background:var(--bg)}
-  .matrix:not(.one) .wkrow>div:first-child{position:sticky;left:0;z-index:3;background:var(--bg)}
+  .matrix:not(.one) .wkrow>div:first-child{position:sticky;left:0;z-index:3;background:var(--bg);box-shadow:4px 0 0 var(--bg),-8px 0 0 var(--bg)}
   .detail{flex-wrap:wrap}
   .dline{flex-wrap:wrap;white-space:normal}
   .single{min-width:640px}
@@ -464,8 +464,11 @@ body:not(.locked) .lock{display:none}
   .prow{border-radius:0}
   /* riga selezionata: cornice attorno alla colonna del nome, staccata dal bordo dello schermo */
   .prow.on{outline:0;background:transparent}
-  .matrix:not(.one) .prow.on .pname{background:var(--surface);border:1px solid var(--line-2);border-right:0;border-radius:10px 0 0 10px}
-  .hdr .tabsel{border:0;background:transparent}
+  .matrix:not(.one) .prow.on .pname{background:var(--bg)}
+  .matrix:not(.one) .prow.on .pname::after{content:"";position:absolute;inset:0;border:1px solid var(--line-2);border-right:0;border-radius:10px 0 0 10px;background:var(--surface);z-index:-1}
+  .matrix:not(.one) .pname::before{content:"";position:absolute;top:-2px;bottom:-2px;left:-10px;width:9px;background:var(--bg)}
+  .hdr .tabsel{border:0;background:transparent;-webkit-appearance:none;appearance:none;background-image:none;outline:none;box-shadow:none}
+  .hdr .tabsel:focus,.hdr .tabsel:focus-visible{outline:none;box-shadow:none}
   .cell.tfx .tm b{font-size:12px;letter-spacing:-.01em}
 }
 @media (max-width:900px){
