@@ -861,7 +861,7 @@ function shiftSpan(v){
 function uscSpan(p,k){ const v = get("uscita",p,k); if(v && typeof v==="object" && v.s && v.e){ const a = mins(v.s); let b = mins(v.e); if(b<=a) b += 1440; return [a,b]; } return null; }
 function uscH(p,k){ const sp = uscSpan(p,k); return sp ? (sp[1]-sp[0])/60 : (Number(get("uscita",p,k)) || 0); }
 /* personale: l'orario normale è il turno scelto (con l'orario manuale il centrale 07-15); fuori è straordinario.
-   Feriali: 06-07 e 15-18 +25%, 18-22 +20%, dalla 3ª ora +30%. Sabato +50%, dall'8ª ora +55%. Domenica e festivi +55%. */
+   Feriali: 06-07 e 15-18 +25%, 18-22 +20%, dalla 3ª ora +30%. Sabato: prime 8 ore +50%, dalla 9ª +55%. Domenica e festivi +55%. */
 function staffCalc(v,p,k){
   const sp = v!==undefined ? shiftSpan(v) : null;
   const win = !sp || sid(v)==="M" ? [420,900] : sp;
@@ -874,7 +874,7 @@ function staffCalc(v,p,k){
   if(!isWorkday(k)){
     const sat = keyDate(k).getDay()===6 && !holidays(Number(k.slice(0,4)))[k];
     if(!sat) return {dur, ot:dur, worked:0, bands:[[55, dur]]};
-    const h50 = Math.min(dur, 7);
+    const h50 = Math.min(dur, 8);
     return {dur, ot:dur, worked:0, bands:[[50, h50], [55, dur - h50]].filter(x => x[1] > 0)};
   }
   let inside = 0, otm = 0; const bm = {};
