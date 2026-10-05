@@ -440,7 +440,7 @@ body:not(.locked) .lock{display:none}
 #filtDlg h2{margin-bottom:14px}
 .fsec{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
 .flab{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-.fjump{font:inherit;font-size:16px;height:42px;padding:0 12px;border:1px solid var(--line-2);border-radius:8px;background:var(--surface-2);color:var(--text);color-scheme:dark}
+.fjump{display:block;width:100%;max-width:100%;min-width:0;box-sizing:border-box;font:inherit;font-size:16px;height:42px;padding:0 12px;border:1px solid var(--line-2);border-radius:8px;background:var(--surface-2);color:var(--text);color-scheme:dark}
 @media (max-width:900px){
   /* telefono: data e pulsante Filtri; il resto nel popup */
   #subbar #todayBtn,#subbar #spanSel,#subbar #jumpM,#subbar #jumpW,#subbar #viewbar{display:none!important}
@@ -464,17 +464,17 @@ body:not(.locked) .lock{display:none}
 }
 @media (max-width:900px){
   /* telefono: logo e menu su una riga, poi una sola riga con mese, Filtri e Annulla */
-  .hdr{grid-template-columns:auto minmax(0,1fr);justify-items:stretch;align-items:center;padding:8px 12px;gap:10px}
-  .hdr .brand{grid-column:1;justify-self:start}
-  .hdr .brand .logo{height:13px}
-  .hdr .tabsel{grid-column:2;height:38px;font-size:14px}
+  .hdr{grid-template-columns:1fr;justify-items:center;align-items:center;padding:8px 12px;gap:8px}
+  .hdr .brand{grid-column:1;justify-self:center}
+  .hdr .brand .logo{height:16px}
+  .hdr .tabsel{grid-column:1;justify-self:center;width:min(320px,100%);height:40px;font-size:15px;text-align:center;text-align-last:center}
   .hdr .hdr-r{display:none}
   .sub{flex-wrap:nowrap;padding:8px 10px;min-height:0}
   .mnav{flex-wrap:nowrap;gap:6px;width:100%;justify-content:center}
   .month{font-size:20px}
   #undoMob{display:inline-flex;align-items:center;justify-content:center;width:38px;padding:0;font-size:17px;color:var(--text)}
   #undoMob[disabled]{opacity:.4}
-  .hdr .tabsel{font-size:13px;padding:0 8px}
+
   .report{padding:8px 12px 0}
   .rp-dates{flex-wrap:wrap;gap:8px}
   .rp-dates input{width:150px;font-size:15px}
