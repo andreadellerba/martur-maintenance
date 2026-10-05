@@ -309,6 +309,17 @@ body:not(.locked) .lock{display:none}
 .vb[aria-pressed="true"]{background:var(--text);border-color:var(--text);color:var(--bg)}
 .matrix.one{min-width:0;max-width:1100px;margin:0 auto;gap:12px}
 .s-head{display:flex;align-items:center;gap:12px}
+/* personale: colonna con nome e riepilogo accanto al calendario */
+.s-wrap{display:flex;gap:16px;align-items:flex-start}
+.s-side{flex:none;width:210px;padding:14px 14px 16px;background:var(--surface);border:1px solid var(--line-2);border-radius:12px}
+.s-side .pn{gap:6px}
+.s-side .pls{gap:3px}
+.s-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:10px}
+@media (max-width:900px), (max-height:500px) and (pointer:coarse){
+  .s-wrap{flex-direction:column;align-items:stretch;gap:10px}
+  .s-side{width:auto;position:static}
+  .s-main{overflow-x:auto}
+}
 .s-head .av{width:40px;height:40px;background:var(--accent);color:var(--on-accent)}
 .s-head b{display:block;font-size:17px}
 .s-head small{color:var(--muted);font-size:13px}
@@ -732,8 +743,8 @@ const PEOPLE = ["VINCENZO GENCO","ERMINIO SICILIA","MASSIMILIANO TORRENTE","FRAN
 const STAFF = ["CARMINE TARANTINO"];
 const isStaff = p => STAFF.includes(p);
 const ROWS = () => state.staff ? STAFF : PEOPLE;
-/* nel report ci sono tutti: dipendenti e personale (Excel e PDF restano solo per i dipendenti) */
-const REPORT_PEOPLE = () => [...PEOPLE, ...STAFF];
+
+const REPORT_PEOPLE = () => PEOPLE;   /* il personale non va nel report */
 const RENAMED = {"MASSIMO TORRENTE":"MASSIMILIANO TORRENTE"};
 const MONTHS = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 const WD = ["LUN","MAR","MER","GIO","VEN","SAB","DOM"];
@@ -846,23 +857,31 @@ function shiftSpan(v){
   const [s,e] = SHIFTS[sid(v)].time.split("-").map(t => mins(hhmm(t)));
   return [s, e<=s ? e+1440 : e];
 }
-/* personale: lavoro nella fascia 07-15, fuori è straordinario con maggiorazione
-   06-07 e 15-18 +25%, 18-22 +20%, dalla 3ª ora di straordinario +30%; sabato +50%, domenica e festivi +55%.
-   L'uscita di servizio si aggiunge dopo la fine del turno. */
+/* uscita di servizio: orario dalle/alle (prima era solo un numero di ore, tenuto per compatibilità) */
+function uscSpan(p,k){ const v = get("uscita",p,k); if(v && typeof v==="object" && v.s && v.e){ const a = mins(v.s); let b = mins(v.e); if(b<=a) b += 1440; return [a,b]; } return null; }
+function uscH(p,k){ const sp = uscSpan(p,k); return sp ? (sp[1]-sp[0])/60 : (Number(get("uscita",p,k)) || 0); }
+/* personale: l'orario normale è il turno scelto (con l'orario manuale il centrale 07-15); fuori è straordinario.
+   Feriali: 06-07 e 15-18 +25%, 18-22 +20%, dalla 3ª ora +30%. Sabato +50%, dall'8ª ora +55%. Domenica e festivi +55%. */
 function staffCalc(v,p,k){
-  let [a,b] = shiftSpan(v);
-  b += (Number(get("uscita",p,k)) || 0) * 60;
-  const dur = (b-a)/60;
+  const sp = v!==undefined ? shiftSpan(v) : null;
+  const win = !sp || sid(v)==="M" ? [420,900] : sp;
+  const segs = sp ? [sp] : [];
+  const us = uscSpan(p,k);
+  if(us) segs.push(us); else { const n = Number(get("uscita",p,k)) || 0; if(n && sp) segs.push([sp[1], sp[1] + n*60]); }
+  /* minuti lavorati, senza contare due volte le sovrapposizioni */
+  const set = new Set(); for(const [a,b] of segs) for(let m=a; m<b; m++) set.add(m);
+  const minutes = [...set].sort((x,y) => x-y), dur = minutes.length/60;
   if(!isWorkday(k)){
     const sat = keyDate(k).getDay()===6 && !holidays(Number(k.slice(0,4)))[k];
-    return {dur, ot:dur, worked:0, bands:[[sat ? 50 : 55, dur]]};
+    if(!sat) return {dur, ot:dur, worked:0, bands:[[55, dur]]};
+    const h50 = Math.min(dur, 7);
+    return {dur, ot:dur, worked:0, bands:[[50, h50], [55, dur - h50]].filter(x => x[1] > 0)};
   }
   let inside = 0, otm = 0; const bm = {};
-  for(let m=a; m<b; m++){
-    const t = m % 1440;
-    if(t>=420 && t<900){ inside++; continue; }
+  for(const m of minutes){
+    if(m>=win[0] && m<win[1]){ inside++; continue; }
     otm++;
-    const r = otm>120 ? 30 : (t>=1080 && t<1320) ? 20 : 25;
+    const t = m % 1440, r = otm>120 ? 30 : (t>=1080 && t<1320) ? 20 : 25;
     bm[r] = (bm[r] || 0) + 1;
   }
   return {dur, ot:otm/60, worked:Math.min(DAY_H, inside/60), bands:Object.entries(bm).map(([r,n]) => [Number(r), n/60])};
@@ -874,7 +893,7 @@ function staffBands(p){
     const k = x.key;
     if(isWorkday(k) && absH(p,k) >= DAY_H) continue;
     const v = presV(p,k);
-    if(v!==undefined) for(const [r,h] of staffCalc(v,p,k).bands) out[r] = (out[r] || 0) + h;
+    if(v!==undefined || uscSpan(p,k)) for(const [r,h] of staffCalc(v,p,k).bands) out[r] = (out[r] || 0) + h;
     const ex = otExtra(p,k); if(ex) out[25] = (out[25] || 0) + ex;
   }
   return out;
@@ -882,8 +901,8 @@ function staffBands(p){
 /* turno "grezzo" del giorno, prima delle assenze */
 function baseCalc(p,k){
   const v = presV(p,k);
+  if(isStaff(p) && (v!==undefined || uscSpan(p,k))) return staffCalc(v,p,k);
   if(v===undefined) return {dur:0, ot:0, worked:0};
-  if(isStaff(p)) return staffCalc(v,p,k);
   const id = sid(v);
   const c = id==="M" ? manualCalc(v.s,v.e) : {dur: SHIFTS[id]?.dur || DAY_H, ot: SHIFTS[id]?.ot || 0, worked: DAY_H};
   /* sabato, domenica e festivi: tutte le ore sono straordinario */
@@ -918,7 +937,8 @@ function hoursOf(cat,p,k){
   if(cat==="cigo") return cigH(p,k);
   if(cat==="visita") return visH(p,k);
   if(cat==="mensa") return menH(p,k);
-  if(cat==="ticket" || cat==="uscita") return Number(get(cat,p,k)) || 0;
+  if(cat==="ticket") return Number(get(cat,p,k)) || 0;
+  if(cat==="uscita") return uscH(p,k);
   return worked(p,k);
 }
 
@@ -1176,7 +1196,7 @@ function cellHTML(p, x, hol, big){
       if(miss){ band.push(`<span class="bx" style="--mc:var(--weekend)" title="Mancano ${fmt(miss)} ore">−${fmt(miss)}H</span>`); aria += `, mancano ${fmt(miss)} ore`; }
       /* personale: uscita di servizio e ticket nella fascia */
       if(isStaff(p)){
-        const u = Number(get("uscita",p,k)) || 0, tk = Number(get("ticket",p,k)) || 0;
+        const u = uscH(p,k), tk = Number(get("ticket",p,k)) || 0;
         if(u){ band.push(`<span class="bx" style="--mc:var(--c-usc)">USC ${fmt(u)}H</span>`); aria += `, uscita di servizio ${fmt(u)} ore`; }
         if(tk){ band.push(`<span class="bx" style="--mc:var(--c-tic)">TICKET ${tk}</span>`); aria += `, ${tk} ticket`; }
       }
@@ -1265,7 +1285,12 @@ function renderSingle(p){
   if(cat==="presenze" || cat==="turnazione") tots = summaryCols().map(c => ({label:c.label, color:c.color, v: c.label==="Str." && c.v(p) ? "+"+fmt(c.v(p)) : ghost(c.v(p))}));
   else if(cat==="ferie") tots = [{label:"Ferie", color:"var(--c-ferie)", v:ghost(sumMonth(p,ferF))},{label:"PAR", color:"var(--c-par)", v:ghost(sumMonth(p,ferP))}];
   else tots = [{label:state.span==="week" ? "Settimana" : "Mese", color:CATCOL[cat], v:ghost(sumMonth(p,(q,k)=>hoursOf(cat,q,k)))}];
-  html += `<div class="s-tots">${tots.map(t => `<span class="s-tot" style="color:${t.color}"><small>${t.label}</small><b>${t.v}</b></span>`).join("")}</div>`;
+  if(!state.staff) html += `<div class="s-tots">${tots.map(t => `<span class="s-tot" style="color:${t.color}"><small>${t.label}</small><b>${t.v}</b></span>`).join("")}</div>`;
+  /* personale: a sinistra la colonna con nome e riepilogo, come nel calendario degli altri */
+  if(state.staff){
+    const short = `${nm.map(w => w[0] + ".").join(" ")} ${last}`;
+    html = `<div class="s-wrap"><aside class="s-side"><span class="pn"><b>${esc(short)}</b><span class="pls">${nameLines(p, cat).map(l => `<small>${l}</small>`).join("")}</span></span></aside><div class="s-main">${html}</div></div>`;
+  }
   $("matrix").innerHTML = html;
   $("matrix").classList.add("one");
 }
@@ -1278,6 +1303,57 @@ function dayHasData(p, k){
   return hoursOf(cat,p,k)>0;
 }
 const narrowDay = (x, hol, ps = ROWS()) => x.dow>4 && !ps.some(p => dayHasData(p, x.key));   /* solo sabato e domenica */
+/* riepilogo sotto il nome, diverso per ogni pagina (usato nel calendario e nella vista del singolo) */
+function nameLines(p, cat){
+  const st = monthStats("presenze", p);
+  const lines = [], L = (col, txt) => lines.push(`<span style="color:var(${col})">${txt}</span>`);
+  const sum = fn => sumMonth(p, fn), daysWith = fn => viewDays().filter(x => fn(p, x.key) > 0).length;
+  if(cat==="presenze"){
+    const [ore, str, fer, par, mal, cig] = presCols().map(c => c.v(p));
+    lines.push(`<span style="color:var(--muted)">${st.n} GG</span> · <span style="color:var(--c-pres)">${fmt(ore)} ORE</span>`);
+    if(str) L("--c-stra", `+${fmt(str)} ORE EXTRA`);
+    if(isStaff(p)){
+      const bands = staffBands(p);
+      for(const r of Object.keys(bands).map(Number).sort((a,b) => a-b)) if(bands[r] > 0.001) L("--c-stra", `EXTRA +${r}%: ${fmt(bands[r])} H`);
+      const tk = sum((q,k) => Number(get("ticket",q,k)) || 0), us = sum(uscH), vis = sum(visH), men = sum(menH);
+      if(vis) L("--c-vis", `+${fmt(vis)} H VISITA MEDICA`);
+      if(men) L("--c-men", `+${fmt(men)} H PAUSA MENSA`);
+      if(us) L("--c-usc", `USCITE: ${fmt(us)} H`);
+      if(tk) L("--c-tic", `TICKET: ${tk}`);
+    }
+    if(fer) L("--c-ferie", `+${fmt(fer)} H FERIE`);
+    if(par) L("--c-par", `+${fmt(par)} H PAR`);
+    if(mal) L("--c-mal", `+${fmt(mal)} ORE MALATTIA`);
+    if(cig) L("--c-cigo", `+${fmt(cig)} ORE CIGO`);
+  } else if(cat==="turnazione"){
+    /* ore previste per turno (8 ore a giornata) */
+    for(const t of ["1","2","C"]){ const n = viewDays().filter(x => turnOf(p, x.key)===t).length; if(n) L(SHIFTS[t].color, `${TNAME[t].toUpperCase()}: ${n*DAY_H} ORE`); }
+    if(!lines.length) L("--muted", "NESSUN TURNO");
+  } else if(cat==="straordinario"){
+    const h = sum(otDay);
+    h ? (L("--muted", `${daysWith(otDay)} GG`), L("--c-stra", `${fmt(h)} ORE EXTRA`)) : L("--muted", "NESSUNO STRAORDINARIO");
+  } else if(cat==="ferie"){
+    /* ferie e PAR divisi tra anno corrente (AC) e anno precedente (AP) */
+    const fAP = sum((q,k) => ferA(q,k) ? ferF(q,k) : 0), fAC = sum(ferF) - fAP;
+    const pAP = sum((q,k) => parA(q,k) ? ferP(q,k) : 0), pAC = sum(ferP) - pAP, vis = sum(visH);
+    if(fAC) L("--c-ferie", `FERIE AC: ${fmt(fAC)} ORE`);
+    if(fAP) L("--c-ferie", `FERIE AP: ${fmt(fAP)} ORE`);
+    if(pAC) L("--c-par", `PAR AC: ${fmt(pAC)} ORE`);
+    if(pAP) L("--c-par", `PAR AP: ${fmt(pAP)} ORE`);
+    if(vis) L("--c-vis", `VISITA: ${fmt(vis)} ORE`);
+    if(!lines.length) L("--muted", "NESSUNA FERIE O PAR");
+  } else if(cat==="malattia"){
+    const ap = sum((q,k) => malE(q,k).a==="AP" ? malH(q,k) : 0), tot = sum(malH);
+    if(tot) L("--muted", `${daysWith(malH)} GG`);
+    if(tot - ap) L("--c-mal", `MALATTIA: ${fmt(tot - ap)} ORE`);
+    if(ap) L("--c-mal", `MALATTIA AP: ${fmt(ap)} ORE`);
+    if(!tot) L("--muted", "NESSUNA MALATTIA");
+  } else if(cat==="cigo"){
+    const h = sum(cigH);
+    h ? (L("--muted", `${daysWith(cigH)} GG`), L("--c-cigo", `CIGO: ${fmt(h)} ORE`)) : L("--muted", "NESSUNA CIGO");
+  }
+  return lines;
+}
 function renderMatrix(){
   if(state.view){ renderSingle(state.view); return; }
   $("matrix").classList.remove("one");
@@ -1311,50 +1387,7 @@ function renderMatrix(){
     const on = p===state.person;
     const nm = p.split(" "), last = nm.pop();
     /* colonna del nome: "F. COPERTINO" su una riga, poi il riepilogo della pagina aperta */
-    const lines = [], L = (col, txt) => lines.push(`<span style="color:var(${col})">${txt}</span>`);
-    const sum = fn => sumMonth(p, fn), daysWith = fn => viewDays().filter(x => fn(p, x.key) > 0).length;
-    if(cat==="presenze"){
-      const [ore, str, fer, par, mal, cig] = presCols().map(c => c.v(p));
-      lines.push(`<span style="color:var(--muted)">${st.n} GG</span> · <span style="color:var(--c-pres)">${fmt(ore)} ORE</span>`);
-      if(str) L("--c-stra", `+${fmt(str)} ORE EXTRA`);
-      if(isStaff(p)){
-        const bands = staffBands(p);
-        for(const r of Object.keys(bands).map(Number).sort((a,b) => a-b)) if(bands[r] > 0.001) L("--c-stra", `EXTRA +${r}%: ${fmt(bands[r])} H`);
-        const tk = sum((q,k) => Number(get("ticket",q,k)) || 0), us = sum((q,k) => Number(get("uscita",q,k)) || 0);
-        if(us) L("--c-usc", `USCITE: ${fmt(us)} H`);
-        if(tk) L("--c-tic", `TICKET: ${tk}`);
-      }
-      if(fer) L("--c-ferie", `+${fmt(fer)} H FERIE`);
-      if(par) L("--c-par", `+${fmt(par)} H PAR`);
-      if(mal) L("--c-mal", `+${fmt(mal)} ORE MALATTIA`);
-      if(cig) L("--c-cigo", `+${fmt(cig)} ORE CIGO`);
-    } else if(cat==="turnazione"){
-      /* ore previste per turno (8 ore a giornata) */
-      for(const t of ["1","2","C"]){ const n = viewDays().filter(x => turnOf(p, x.key)===t).length; if(n) L(SHIFTS[t].color, `${TNAME[t].toUpperCase()}: ${n*DAY_H} ORE`); }
-      if(!lines.length) L("--muted", "NESSUN TURNO");
-    } else if(cat==="straordinario"){
-      const h = sum(otDay);
-      h ? (L("--muted", `${daysWith(otDay)} GG`), L("--c-stra", `${fmt(h)} ORE EXTRA`)) : L("--muted", "NESSUNO STRAORDINARIO");
-    } else if(cat==="ferie"){
-      /* ferie e PAR divisi tra anno corrente (AC) e anno precedente (AP) */
-      const fAP = sum((q,k) => ferA(q,k) ? ferF(q,k) : 0), fAC = sum(ferF) - fAP;
-      const pAP = sum((q,k) => parA(q,k) ? ferP(q,k) : 0), pAC = sum(ferP) - pAP, vis = sum(visH);
-      if(fAC) L("--c-ferie", `FERIE AC: ${fmt(fAC)} ORE`);
-      if(fAP) L("--c-ferie", `FERIE AP: ${fmt(fAP)} ORE`);
-      if(pAC) L("--c-par", `PAR AC: ${fmt(pAC)} ORE`);
-      if(pAP) L("--c-par", `PAR AP: ${fmt(pAP)} ORE`);
-      if(vis) L("--c-vis", `VISITA: ${fmt(vis)} ORE`);
-      if(!lines.length) L("--muted", "NESSUNA FERIE O PAR");
-    } else if(cat==="malattia"){
-      const ap = sum((q,k) => malE(q,k).a==="AP" ? malH(q,k) : 0), tot = sum(malH);
-      if(tot) L("--muted", `${daysWith(malH)} GG`);
-      if(tot - ap) L("--c-mal", `MALATTIA: ${fmt(tot - ap)} ORE`);
-      if(ap) L("--c-mal", `MALATTIA AP: ${fmt(ap)} ORE`);
-      if(!tot) L("--muted", "NESSUNA MALATTIA");
-    } else if(cat==="cigo"){
-      const h = sum(cigH);
-      h ? (L("--muted", `${daysWith(cigH)} GG`), L("--c-cigo", `CIGO: ${fmt(h)} ORE`)) : L("--muted", "NESSUNA CIGO");
-    }
+    const lines = nameLines(p, cat);
     const shortName = `${nm.map(w => w[0] + ".").join(" ")} ${last}`;
     html += `<div class="row prow${on?" on":""}"><button class="pname" data-p="${esc(p)}"><span class="pn" title="${esc(p)}"><b>${esc(shortName)}</b><span class="pls">${lines.map(l => `<small>${l}</small>`).join("")}</span></span></button>`;
     days.forEach((x,i) => { html += cellHTML(p, nar[i] ? {...x, nar:true} : x, hol); });
@@ -1557,7 +1590,7 @@ function render(){
   document.body.dataset.cat = activeTab();
   applyColors();
   const st = state.cat==="impostazioni", rp = state.cat==="report" || st;
-  $("report").hidden = state.cat!=="report"; $("settings").hidden = !st; $("board").hidden = rp; $("viewbar").hidden = rp; $("detail").hidden = rp; $("subbar").hidden = rp;
+  $("report").hidden = state.cat!=="report"; $("settings").hidden = !st; $("board").hidden = rp; $("viewbar").hidden = rp || state.staff; $("detail").hidden = rp; $("subbar").hidden = rp;
   $("month").textContent = viewTitle();
   $("spanSel").value = state.span || "month";
   $("jumpM").hidden = state.span==="week"; $("jumpW").hidden = state.span!=="week";
@@ -1585,7 +1618,7 @@ const activeTab = () => state.staff ? "personale" : state.cat;
 function goTab(id){
   const was = state.staff;
   state.staff = id==="personale"; state.cat = state.staff ? "presenze" : id;
-  if(was!==state.staff){ state.person = ROWS()[0]; state.view = null; }
+  if(was!==state.staff){ state.person = ROWS()[0]; state.view = state.staff ? STAFF[0] : null; }   /* personale: sempre la vista di Tarantino */
   state.sel = null; state.msel = null; render();
 }
 $("tabs").addEventListener("click", e => {
@@ -1858,6 +1891,7 @@ $("detail").addEventListener("click", e => {
     const list = a==="straordinario" ? pairs : work;
     if(!list.length){ alertMsg("Nella selezione non ci sono giorni lavorativi."); return; }
     if(a==="time") return openTimeMulti(list);
+    if(a==="uscita"){ state.person = list[0].p; return openUscita(list[0].k, list.length>1 ? list : null); }
     return openHoursMulti(list, a);
   }
   if(!state.sel) return;
@@ -1866,6 +1900,7 @@ $("detail").addEventListener("click", e => {
   if(a==="copyday") return commit(() => { bucket("presenze",p)[k] = TO_PRES[turnOf(p,k)]; });
   if(a==="time") return openTime(k);
   if(a==="hol") return openHol(k);
+  if(a==="uscita") return openUscita(k);
   if(a==="note") return openNote([{p,k}]);
   if(a==="clear") return commit(() => clearDay(p,k));
   openHours(k, a);
@@ -1965,7 +2000,8 @@ function openHours(key, cat = state.cat){
   $("dlg").showModal(); $("hours").focus();
 }
 function openTime(key){
-  editing = key; dlgMode = "time"; multiTime = null; $("dlgClear").textContent = "Rimuovi";
+  editing = key; dlgMode = "time"; multiTime = null; multiUsc = null; $("dlgClear").textContent = "Rimuovi";
+  $("tStart").step = $("tEnd").step = "900";
   const cur = presV(state.person, key);
   const t = cur && sid(cur)==="M" ? cur : lastTimes;
   $("hoursMode").hidden = true; $("timeMode").hidden = false;
@@ -1975,9 +2011,36 @@ function openTime(key){
   $("dlgClear").style.visibility = cur!==undefined ? "visible" : "hidden";
   $("dlg").showModal(); $("tStart").focus();
 }
+/* uscita di servizio (personale): orario dalle/alle a mezz'ore */
+let multiUsc = null;
+function openUscita(key, pairs = null){
+  editing = key; dlgMode = "uscita"; multiTime = null; multiKeys = null; multiUsc = pairs;
+  const v = get("uscita", state.person, key), t = v && v.s ? v : {s:"15:00", e:"16:00"};
+  $("hoursMode").hidden = true; $("timeMode").hidden = false;
+  $("dlgTitle").textContent = "Uscita di servizio";
+  $("dlgSub").textContent = (pairs ? multiSub(pairs, "L'orario vale") : dateLabel(key) + ".") + " Dentro l'orario del turno è lavoro normale, fuori è straordinario.";
+  $("tStart").step = $("tEnd").step = "1800";
+  $("tStart").value = t.s; $("tEnd").value = t.e; updateCalc();
+  $("dlgClear").textContent = pairs ? "Rimuovi da tutti" : "Rimuovi";
+  $("dlgClear").style.visibility = (pairs ? pairs.some(({p,k}) => get("uscita",p,k)!==undefined) : v!==undefined) ? "visible" : "hidden";
+  $("dlg").showModal(); $("tStart").focus();
+}
+/* anteprima nel popup: per il personale quante ore sono normali e quante straordinario */
+function staffPreview(s, e){
+  const p = state.person, k = editing, a = mins(s); let b = mins(e); if(b<=a) b += 1440;
+  if(dlgMode==="uscita"){
+    const saved = data.uscita?.[p]?.[k]; bucket("uscita",p)[k] = {s, e};
+    const r = baseCalc(p,k); if(saved===undefined) delete bucket("uscita",p)[k]; else bucket("uscita",p)[k] = saved;
+    return `Con il turno del giorno: <strong>${fmt(r.worked)} h</strong> normali, <strong>${fmt(r.ot)} h</strong> di straordinario`;
+  }
+  const saved = data.presenze?.[p]?.[k]; bucket("presenze",p)[k] = {t:"M", s, e};
+  const r = baseCalc(p,k); if(saved===undefined) delete bucket("presenze",p)[k]; else bucket("presenze",p)[k] = saved;
+  return `<strong>${fmt(r.worked)} h</strong> normali, <strong>${fmt(r.ot)} h</strong> di straordinario (fuori dal 07-15)`;
+}
 function updateCalc(){
   const s = $("tStart").value, e = $("tEnd").value;
   if(!s || !e){ $("tCalc").textContent = ""; return; }
+  if(isStaff(state.person)){ $("tCalc").innerHTML = staffPreview(s, e); return; }
   const c = manualCalc(s,e);
   $("tCalc").innerHTML = `<strong>${fmt(c.worked)} h</strong> lavorate` + (c.ot ? `, <strong>${fmt(c.ot)} h</strong> di straordinario (oltre le 8 ore)` : c.worked<DAY_H ? `, restano <strong>${fmt(DAY_H-c.worked)} h</strong> da coprire` : "");
 }
@@ -2056,6 +2119,13 @@ $("chips").addEventListener("click", e => {
   $("dlg").close(); saveHours(Number(x.dataset.h));
 });
 $("dlgForm").addEventListener("submit", e => {
+  if(dlgMode==="uscita"){
+    const s = $("tStart").value, e = $("tEnd").value; if(!s || !e) return;
+    const key = editing;
+    if(multiUsc){ const ps = multiUsc; multiUsc = null; commit(() => { ps.forEach(({p,k}) => { bucket("uscita",p)[k] = {s, e}; }); state.msel = null; }); return; }
+    commit(() => { bucket("uscita", state.person)[key] = {s, e}; });
+    return;
+  }
   if(dlgMode==="time"){
     const s = $("tStart").value, e = $("tEnd").value;
     if(!s || !e) return;
@@ -2072,6 +2142,7 @@ $("dlgClear").onclick = () => {
   const key = editing;
   if(multiKeys){ const ks = multiKeys; multiKeys = null; commit(() => { ks.forEach(({p,k}) => { delete bucket(dlgMode, p)[k]; }); state.msel = null; }); $("dlg").close(); return; }
   if(multiTime){ const ps = multiTime; multiTime = null; commit(() => { ps.forEach(({p,k}) => setShiftP(p, k, null)); state.msel = null; }); $("dlg").close(); return; }
+  if(dlgMode==="uscita"){ const ps = multiUsc; multiUsc = null; commit(() => { (ps || [{p:state.person, k:key}]).forEach(({p,k}) => { delete bucket("uscita",p)[k]; }); state.msel = null; }); $("dlg").close(); return; }
   if(dlgMode==="time") commit(() => setShiftP(state.person, key, null));
   else if(dlgMode==="ferie") commit(() => { delete bucket("ferie", state.person)[key]; });
   else commit(() => { delete bucket(dlgMode, state.person)[key]; });
@@ -2574,8 +2645,8 @@ function renderFilters(){
       <button class="rp-chip" data-ftoday="1">Oggi</button></div></div>
     <div class="fsec"><label class="flab" for="fJump">${wk ? "Vai alla settimana" : "Vai al mese"}</label>
       <input class="fjump" id="fJump" type="${wk ? "week" : "month"}" value="${wk ? weekInput(state.wk) : iso(state.y,state.m,1).slice(0,7)}"></div>
-    <div class="fsec"><span class="flab">Persone</span><div class="seg2">
-      ${[[null,"TUTTI"], ...ROWS().map(p => [p, surname(p)])].map(([k,l]) => `<button class="rp-chip" data-fview="${k ? esc(k) : ""}" aria-pressed="${state.view===k}">${esc(l)}</button>`).join("")}</div></div>
+    ${state.staff ? "" : `<div class="fsec"><span class="flab">Persone</span><div class="seg2">
+      ${[[null,"TUTTI"], ...ROWS().map(p => [p, surname(p)])].map(([k,l]) => `<button class="rp-chip" data-fview="${k ? esc(k) : ""}" aria-pressed="${state.view===k}">${esc(l)}</button>`).join("")}</div></div>`}
     <div class="dlg-actions"><button type="button" class="btn primary" id="filtClose">Fatto</button></div>`;
 }
 $("filtBtn").onclick = () => { renderFilters(); $("filtDlg").showModal(); };
