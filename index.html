@@ -437,11 +437,14 @@ body:not(.locked) .lock{display:none}
 }
 .mob-only{display:none}
 .sheet-bg{position:fixed;inset:0;background:var(--backdrop);z-index:44}
-#filtDlg{width:min(440px,calc(100% - 24px))}
+#filtDlg{width:min(440px,calc(100vw - 24px));max-width:calc(100vw - 24px);box-sizing:border-box;overflow-x:hidden}
+.fjump::-webkit-date-and-time-value{text-align:left;min-width:0}
+.fsec{min-width:0}
+#filtDlg button:focus:not(:focus-visible),#filtDlg .rp-chip:focus{outline:none}
 #filtDlg h2{margin-bottom:14px}
 .fsec{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
 .flab{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-.fjump{display:block;width:100%;max-width:100%;min-width:0;box-sizing:border-box;font:inherit;font-size:16px;height:42px;padding:0 12px;border:1px solid var(--line-2);border-radius:8px;background:var(--surface-2);color:var(--text);color-scheme:dark}
+.fjump{-webkit-appearance:none;appearance:none;display:block;width:100%;max-width:100%;min-width:0;box-sizing:border-box;text-align:left;font:inherit;font-size:16px;height:42px;padding:0 12px;border:1px solid var(--line-2);border-radius:8px;background:var(--surface-2);color:var(--text);color-scheme:dark}
 @media (max-width:900px){
   /* telefono: data e pulsante Filtri; il resto nel popup */
   #subbar #todayBtn,#subbar #spanSel,#subbar #jumpM,#subbar #jumpW,#subbar #viewbar{display:none!important}
@@ -486,8 +489,20 @@ body:not(.locked) .lock{display:none}
 
   .report{padding:8px 12px 0}
   .rp-dates{flex-wrap:wrap;gap:8px}
-  .rp-dates input{width:150px;font-size:15px}
+
   .rp-h{font-size:24px}
+}
+@media (max-width:900px){
+  /* report su telefono: date e Filtri su una riga, il resto nel popup */
+  .report .rp-f{display:none!important}
+  .rp-bar{flex-wrap:nowrap}
+  .rp-dates{flex-wrap:nowrap;gap:6px;align-items:center;width:100%}
+  .rp-dates label{gap:4px;font-size:13px}
+  .rp-dates input{-webkit-appearance:none;appearance:none;width:104px;max-width:104px;font-size:13px;padding:6px 6px;min-width:0;box-sizing:border-box}
+  .rp-dates input::-webkit-date-and-time-value{text-align:left}
+  .rp-dates input::-webkit-calendar-picker-indicator{display:none}
+  #rpFilt{display:inline-flex;align-items:center;margin-left:auto;height:34px;padding:0 10px;font-size:14px;font-weight:700}
+  .rp-bar2 .rp-h{font-size:22px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -2306,12 +2321,22 @@ function rowHTML(label, st, cls = ""){
   const z = n => n ? fmt(n) : `<span class="zero">–</span>`;
   return `<tr class="${cls}"><th class="l">${label}</th><td>${z(st.gg)}</td><td class="c-pres">${z(st.ord)}</td><td class="c-stra">${z(st.ot)}</td><td class="tot">${z(st.ord+st.ot)}</td><td class="c-ferie">${z(st.f)}</td><td class="c-par">${z(st.par)}</td><td class="c-mal">${z(st.mal)}</td><td class="c-cigo">${z(st.cig)}</td><td class="c-vis">${z(st.vis)}</td><td class="c-men">${z(st.men)}</td>${RSH.map(([k]) => `<td class="sh">${z(st.sh[k])}</td>`).join("")}</tr>`;
 }
+/* telefono: i filtri del report in un popup */
+function renderRepFilters(){
+  const presets = [["week","Questa settimana"],["month","Questo mese"],["prev","Mese scorso"],["cal",`${MONTHS[state.m]} ${state.y}`],["year","Quest'anno"]];
+  const groups = [["week","Settimana"],["month","Mese"],["year","Anno"]];
+  $("filtBody").innerHTML = `<h2>Filtri</h2>
+    <div class="fsec"><span class="flab">Periodo</span><div class="seg2">${presets.map(([k,l]) => `<button class="rp-chip" data-pr="${k}" aria-pressed="${rep.preset===k}">${l}</button>`).join("")}</div></div>
+    <div class="fsec"><span class="flab">Dettaglio per</span><div class="seg2">${groups.map(([k,l]) => `<button class="rp-chip" data-gr="${k}" aria-pressed="${rep.group===k}">${l}</button>`).join("")}</div></div>
+    <div class="fsec"><span class="flab">Persone</span><div class="seg2">${[["ALL","TUTTI"], ...PEOPLE.map(p => [p, surname(p)])].map(([k,l]) => `<button class="rp-chip" data-who="${esc(k)}" aria-pressed="${rep.who===k}">${esc(l)}</button>`).join("")}</div></div>
+    <div class="dlg-actions"><button type="button" class="btn primary" id="filtClose">Fatto</button></div>`;
+}
 function renderReport(){
   const keys = keysBetween(rep.from, rep.to);
   const presets = [["week","Questa settimana"],["month","Questo mese"],["prev","Mese scorso"],["cal",`${MONTHS[state.m]} ${state.y}`],["year","Quest'anno"]];
   let html = `<div class="rp-bar">
-    <div class="rp-dates"><label>Dal<input type="date" id="rpFrom" value="${rep.from}"></label><label>Al<input type="date" id="rpTo" value="${rep.to}"></label></div>
-    <div class="rp-pre">${presets.map(([k,l]) => `<button class="rp-chip" data-pr="${k}" aria-pressed="${rep.preset===k}">${l}</button>`).join("")}</div>
+    <div class="rp-dates"><label>Dal<input type="date" id="rpFrom" value="${rep.from}"></label><label>Al<input type="date" id="rpTo" value="${rep.to}"></label><button class="rp-chip mob-only" id="rpFilt" aria-haspopup="dialog">Filtri</button></div>
+    <div class="rp-pre rp-f">${presets.map(([k,l]) => `<button class="rp-chip" data-pr="${k}" aria-pressed="${rep.preset===k}">${l}</button>`).join("")}</div>
   </div>`;
   if(!keys.length){
     $("report").innerHTML = html + `<p class="rp-empty">La data di inizio viene dopo quella di fine: correggi le date.</p>` + backupHTML();
@@ -2328,8 +2353,8 @@ function renderReport(){
   const groups = [["week","Settimana"],["month","Mese"],["year","Anno"]];
   html += `<div class="rp-bar2">
     <h2 class="rp-h">Dettaglio nome per nome</h2>
-    <div class="seg2">${groups.map(([k,l]) => `<button class="rp-chip" data-gr="${k}" aria-pressed="${rep.group===k}">${l}</button>`).join("")}</div>
-    <div class="seg2">${[["ALL","Tutti"], ...PEOPLE.map(p => [p, surname(p)])].map(([k,l]) => `<button class="rp-chip" data-who="${esc(k)}" aria-pressed="${rep.who===k}">${esc(l)}</button>`).join("")}</div>
+    <div class="seg2 rp-f">${groups.map(([k,l]) => `<button class="rp-chip" data-gr="${k}" aria-pressed="${rep.group===k}">${l}</button>`).join("")}</div>
+    <div class="seg2 rp-f">${[["ALL","Tutti"], ...PEOPLE.map(p => [p, surname(p)])].map(([k,l]) => `<button class="rp-chip" data-who="${esc(k)}" aria-pressed="${rep.who===k}">${esc(l)}</button>`).join("")}</div>
   </div>`;
   const periods = periodsOf(keys);
   for(const p of PEOPLE){
@@ -2351,6 +2376,7 @@ $("report").addEventListener("click", e => {
   if(b.dataset.pr){ setPreset(b.dataset.pr); return renderReport(); }
   if(b.dataset.gr){ rep.group = b.dataset.gr; return renderReport(); }
   if(b.dataset.who){ rep.who = b.dataset.who; return renderReport(); }
+  if(b.id==="rpFilt"){ renderRepFilters(); $("filtDlg").showModal(); return; }
   if(b.id==="bkSave") return saveBackup();
   if(b.id==="bkLoad") return $("bkFile").click();
   if(b.id==="logoutBtn") return window.cloudLogout && window.cloudLogout();
@@ -2400,6 +2426,7 @@ $("filtDlg").addEventListener("click", e => {
   if(e.target===$("filtDlg")) return $("filtDlg").close();
   const b = e.target.closest("button"); if(!b) return;
   if(b.id==="filtClose") return $("filtDlg").close();
+  if(b.dataset.pr || b.dataset.gr || b.dataset.who){ if(b.dataset.pr) setPreset(b.dataset.pr); if(b.dataset.gr) rep.group = b.dataset.gr; if(b.dataset.who) rep.who = b.dataset.who; renderReport(); renderRepFilters(); return; }
   if(b.dataset.fspan){ if(b.dataset.fspan!==state.span) setSpan(b.dataset.fspan); }
   else if(b.dataset.ftoday) $("todayBtn").onclick();
   else if("fview" in b.dataset){ state.view = b.dataset.fview || null; if(state.view) state.person = state.view; state.sel = null; state.msel = null; render(); }
