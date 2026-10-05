@@ -169,8 +169,8 @@ select.today,.jump{background:var(--surface);color:var(--text);font:inherit;font
 .dh.hol,.dh.hol.now{background:var(--weekend);color:var(--on-fill);box-shadow:none}
 .dh.hol span{opacity:1}
 .cell.holfill .dn{color:var(--on-fill)!important}
-.cell .missc{position:absolute;top:3px;left:50%;transform:translateX(-50%);width:10px;height:10px;border-radius:50%;background:var(--weekend);border:2px solid #000;box-sizing:border-box;z-index:1}
-.cell.lg .missc{width:13px;height:13px;top:6px}
+.cell .missc{position:absolute;top:4px;left:4px;width:10px;height:10px;border-radius:50%;background:var(--weekend);border:2px solid #000;box-sizing:border-box;z-index:1}
+.cell.lg .missc{width:13px;height:13px;top:8px;left:32px}
 .cell.tfx{justify-content:flex-start;overflow:hidden;gap:0}
 .cell.tfx .tm{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
 .cell.tfx .tm b{font-family:var(--display);font-size:14px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
@@ -191,10 +191,10 @@ select.today,.jump{background:var(--surface);color:var(--text);font:inherit;font
 .cell.val{background:color-mix(in srgb,var(--ac) 22%,var(--surface));border-color:color-mix(in srgb,var(--ac) 55%,transparent);color:var(--ac)}
 .cell .ot{font-family:var(--body);font-size:9.5px;letter-spacing:-.03em;white-space:nowrap;max-width:100%;font-weight:700;margin-top:3px;padding:1px 2px;border-radius:4px;background:var(--bg);color:var(--c-stra)}
 .cell .mk{font-family:var(--body);font-size:9px;letter-spacing:-.03em;white-space:nowrap;max-width:100%;font-weight:700;margin-top:3px;padding:1px 2px;border-radius:4px;background:var(--bg);color:var(--mc)}
-.cell .star{position:absolute;top:2px;left:3px;font-family:var(--body);font-size:27px;font-weight:900;line-height:.8;color:var(--text);z-index:2}
+.cell .star{position:absolute;top:2px;left:50%;transform:translateX(-50%);font-family:var(--body);font-size:27px;font-weight:900;line-height:.8;color:var(--text);z-index:2}
 .cell.shift .star{color:var(--on-fill)}
 .cell.val .star,.cell.abs .star{color:#fff;text-shadow:0 0 1px #000,1px 1px 0 #000,-1px 1px 0 #000,1px -1px 0 #000,-1px -1px 0 #000,0 0 6px rgba(0,0,0,.9)}
-.cell.lg .star{top:auto;left:auto;bottom:6px;right:9px;font-size:34px}
+.cell.lg .star{top:4px;font-size:34px}
 .cell .miss{position:absolute;top:4px;right:4px;width:7px;height:7px;border-radius:50%;background:var(--weekend);box-shadow:0 0 0 2px var(--bg)}
 .cell.rng{box-shadow:inset 0 0 0 2px var(--accent);background:color-mix(in srgb,var(--accent) 20%,var(--surface))}
 .cell.sel{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--text);z-index:1}
@@ -322,7 +322,7 @@ body:not(.locked) .lock{display:none}
 .wkv .cell .big{font-size:30px}
 .wkv .cell .mk,.wkv .cell .ot{font-size:12px}
 .wkv .cell .fest{font-size:10px;padding:1px 5px}
-.wkv .cell .star{font-size:34px;left:6px;top:4px}
+.wkv .cell .star{font-size:34px;top:4px}
 .cell.lg .dn{position:absolute;top:6px;left:8px;font-family:var(--display);font-size:16px;font-weight:700;opacity:.85}
 .cell.lg.we .dn{color:var(--weekend-ink)}
 .cell.lg.shift .dn{color:inherit}
@@ -1247,20 +1247,44 @@ function renderMatrix(){
     const st = monthStats("presenze", p);
     const on = p===state.person;
     const nm = p.split(" "), last = nm.pop();
-    /* colonna del nome: "F. COPERTINO" su una riga, poi giorni e ore, poi una riga per ogni voce presente */
-    const lines = [];
-    if(cat!=="turnazione"){
+    /* colonna del nome: "F. COPERTINO" su una riga, poi il riepilogo della pagina aperta */
+    const lines = [], L = (col, txt) => lines.push(`<span style="color:var(${col})">${txt}</span>`);
+    const sum = fn => sumMonth(p, fn), daysWith = fn => viewDays().filter(x => fn(p, x.key) > 0).length;
+    if(cat==="presenze"){
       const [ore, str, fer, par, mal, cig] = presCols().map(c => c.v(p));
       lines.push(`<span style="color:var(--muted)">${st.n} GG</span> · <span style="color:var(--c-pres)">${fmt(ore)} ORE</span>`);
-      if(str) lines.push(`<span style="color:var(--c-stra)">+${fmt(str)} ORE EXTRA</span>`);
-      if(fer) lines.push(`<span style="color:var(--c-ferie)">+${fmt(fer)} H FERIE</span>`);
-      if(par) lines.push(`<span style="color:var(--c-par)">+${fmt(par)} H PAR</span>`);
-      if(mal) lines.push(`<span style="color:var(--c-mal)">+${fmt(mal)} ORE MALATTIA</span>`);
-      if(cig) lines.push(`<span style="color:var(--c-cigo)">+${fmt(cig)} ORE CIGO</span>`);
+      if(str) L("--c-stra", `+${fmt(str)} ORE EXTRA`);
+      if(fer) L("--c-ferie", `+${fmt(fer)} H FERIE`);
+      if(par) L("--c-par", `+${fmt(par)} H PAR`);
+      if(mal) L("--c-mal", `+${fmt(mal)} ORE MALATTIA`);
+      if(cig) L("--c-cigo", `+${fmt(cig)} ORE CIGO`);
     } else if(cat==="turnazione"){
-      lines.push(summaryCols().map(c => `<span style="color:${c.color}">${c.label} ${c.v(p) || "–"}</span>`).join(" · "));
-      const t = weekTurn(p); lines.push(t ? `W${isoWeek(toKey(new Date()))}: ${TNAME[t].toUpperCase()}` : "NESSUN TURNO");
-    } else lines.push(`${st.n} GG`);
+      /* ore previste per turno (8 ore a giornata) */
+      for(const t of ["1","2","C"]){ const n = viewDays().filter(x => turnOf(p, x.key)===t).length; if(n) L(SHIFTS[t].color, `${TNAME[t].toUpperCase()}: ${n*DAY_H} ORE`); }
+      if(!lines.length) L("--muted", "NESSUN TURNO");
+    } else if(cat==="straordinario"){
+      const h = sum(otDay);
+      h ? (L("--muted", `${daysWith(otDay)} GG`), L("--c-stra", `${fmt(h)} ORE EXTRA`)) : L("--muted", "NESSUNO STRAORDINARIO");
+    } else if(cat==="ferie"){
+      /* ferie e PAR divisi tra anno corrente (AC) e anno precedente (AP) */
+      const fAP = sum((q,k) => ferA(q,k) ? ferF(q,k) : 0), fAC = sum(ferF) - fAP;
+      const pAP = sum((q,k) => parA(q,k) ? ferP(q,k) : 0), pAC = sum(ferP) - pAP, vis = sum(visH);
+      if(fAC) L("--c-ferie", `FERIE AC: ${fmt(fAC)} ORE`);
+      if(fAP) L("--c-ferie", `FERIE AP: ${fmt(fAP)} ORE`);
+      if(pAC) L("--c-par", `PAR AC: ${fmt(pAC)} ORE`);
+      if(pAP) L("--c-par", `PAR AP: ${fmt(pAP)} ORE`);
+      if(vis) L("--c-vis", `VISITA: ${fmt(vis)} ORE`);
+      if(!lines.length) L("--muted", "NESSUNA FERIE O PAR");
+    } else if(cat==="malattia"){
+      const ap = sum((q,k) => malE(q,k).a==="AP" ? malH(q,k) : 0), tot = sum(malH);
+      if(tot) L("--muted", `${daysWith(malH)} GG`);
+      if(tot - ap) L("--c-mal", `MALATTIA: ${fmt(tot - ap)} ORE`);
+      if(ap) L("--c-mal", `MALATTIA AP: ${fmt(ap)} ORE`);
+      if(!tot) L("--muted", "NESSUNA MALATTIA");
+    } else if(cat==="cigo"){
+      const h = sum(cigH);
+      h ? (L("--muted", `${daysWith(cigH)} GG`), L("--c-cigo", `CIGO: ${fmt(h)} ORE`)) : L("--muted", "NESSUNA CIGO");
+    }
     const shortName = `${nm.map(w => w[0] + ".").join(" ")} ${last}`;
     html += `<div class="row prow${on?" on":""}"><button class="pname" data-p="${esc(p)}"><span class="pn" title="${esc(p)}"><b>${esc(shortName)}</b><span class="pls">${lines.map(l => `<small>${l}</small>`).join("")}</span></span></button>`;
     days.forEach((x,i) => { html += cellHTML(p, nar[i] ? {...x, nar:true} : x, hol); });
