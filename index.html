@@ -408,7 +408,7 @@ body:not(.locked) .lock{display:none}
   .hdr{grid-template-columns:1fr;height:auto;padding:10px 12px;gap:8px;justify-items:center}
   .brand,.pills,.hdr-r{grid-column:1;justify-self:center}
 }
-@media (max-width:900px){
+@media (max-width:900px), (max-height:500px) and (pointer:coarse){
   .hdr{grid-template-columns:1fr;height:auto;padding:10px 12px;gap:8px;justify-items:center}
   .brand,.pills,.hdr-r{grid-column:1;justify-self:center}
   .pills{overflow-x:auto;max-width:100%}
@@ -418,7 +418,7 @@ body:not(.locked) .lock{display:none}
   .detail{margin:12px}
 }
 .tabsel{display:none}
-@media (max-width:900px){
+@media (max-width:900px), (max-height:500px) and (pointer:coarse){
   /* telefono: menu a tendina, calendario a larghezza piena che scorre da solo a destra e sinistra */
   .pills{display:none}
   .tabsel{display:block;grid-column:1;justify-self:stretch;height:40px;padding:0 12px;border:1px solid var(--line-2);border-radius:10px;background:var(--surface);color:var(--text);font:inherit;font-size:15px;font-weight:700;letter-spacing:.03em}
@@ -445,7 +445,7 @@ body:not(.locked) .lock{display:none}
 .fsec{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
 .flab{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .fjump{-webkit-appearance:none;appearance:none;display:block;width:100%;max-width:100%;min-width:0;box-sizing:border-box;text-align:left;font:inherit;font-size:16px;height:42px;padding:0 12px;border:1px solid var(--line-2);border-radius:8px;background:var(--surface-2);color:var(--text);color-scheme:dark}
-@media (max-width:900px){
+@media (max-width:900px), (max-height:500px) and (pointer:coarse){
   /* telefono: data e pulsante Filtri; il resto nel popup */
   #subbar #todayBtn,#subbar #spanSel,#subbar #jumpM,#subbar #jumpW,#subbar #viewbar{display:none!important}
   #filtBtn{display:inline-flex;align-items:center;font-weight:700;color:var(--text)}
@@ -474,7 +474,7 @@ body:not(.locked) .lock{display:none}
   .hdr .tabsel:focus,.hdr .tabsel:focus-visible{outline:none;box-shadow:none}
   .cell.tfx .tm b{font-size:12px;letter-spacing:-.01em}
 }
-@media (max-width:900px){
+@media (max-width:900px), (max-height:500px) and (pointer:coarse){
   /* telefono: logo e menu su una riga, poi una sola riga con mese, Filtri e Annulla */
   .hdr{grid-template-columns:1fr;justify-items:center;align-items:center;padding:8px 12px;gap:8px}
   .hdr .brand{grid-column:1;justify-self:center}
@@ -492,7 +492,7 @@ body:not(.locked) .lock{display:none}
 
   .rp-h{font-size:24px}
 }
-@media (max-width:900px){
+@media (max-width:900px), (max-height:500px) and (pointer:coarse){
   /* report su telefono: date e Filtri su una riga, il resto nel popup */
   .report .rp-f{display:none!important}
   .rp-bar{flex-wrap:nowrap}
@@ -1545,6 +1545,24 @@ $("matrix").addEventListener("pointermove", e => {
 $("matrix").addEventListener("pointerleave", hideTip);
 $("matrix").addEventListener("pointerdown", hideTip);
 addEventListener("scroll", hideTip, true);
+/* telefono: toccando un giorno con un commento, il commento compare sotto la casella */
+function showTipBelow(c){
+  const lines = tipLines(c.dataset.p, c.dataset.date);
+  if(!lines.length){ hideTip(); return; }
+  tipCell = c; tipEl.innerHTML = lines.join("<br>"); tipEl.hidden = false;
+  const r = c.getBoundingClientRect(), t = tipEl.getBoundingClientRect();
+  const x = Math.min(Math.max(8, r.left + r.width/2 - t.width/2), innerWidth - t.width - 8);
+  let y = r.bottom + 6; if(y + t.height > innerHeight - 8) y = r.top - t.height - 6;
+  tipEl.style.left = x + "px"; tipEl.style.top = Math.max(8, y) + "px";
+}
+$("matrix").addEventListener("click", e => {
+  if(!isMobile()) return;
+  const c = e.target.closest(".cell[data-date]"); if(!c){ hideTip(); return; }
+  const p = c.dataset.p, k = c.dataset.date;
+  /* dopo il clic il calendario si ridisegna: cerco la casella nuova */
+  setTimeout(() => { const n = [...document.querySelectorAll(".cell[data-date]")].find(x => x.dataset.p===p && x.dataset.date===k); n ? showTipBelow(n) : hideTip(); }, 0);
+});
+document.addEventListener("click", e => { if(isMobile() && !e.target.closest("#matrix")) hideTip(); });
 
 function selectCell(p, k){ state.person = p; state.sel = {p, k}; }
 $("matrix").addEventListener("pointerdown", e => {
@@ -2407,7 +2425,8 @@ function loadBackup(file){
 }
 
 /* ---------- Telefono: filtri in un popup e barra delle voci dal pulsante + ---------- */
-const isMobile = () => matchMedia("(max-width:900px)").matches;
+const MOBILE_Q = "(max-width:900px), (max-height:500px) and (pointer:coarse)";
+const isMobile = () => matchMedia(MOBILE_Q).matches;
 function renderFilters(){
   const wk = state.span==="week";
   $("filtBody").innerHTML = `<h2>Filtri</h2>
