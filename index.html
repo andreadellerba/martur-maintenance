@@ -1022,20 +1022,22 @@ const ghost = n => n ? fmt(n) : "–";
 
 /* colonne dei totali a destra */
 function totalCols(){
-  if(state.cat==="turnazione" || state.cat==="presenze") return [];   /* i totali stanno sotto il nome */
+  return [];   /* in tutti i calendari i totali stanno sotto il nome */
   return summaryCols();
 }
 /* totali di presenze e turnazione: sotto il nome e nella vista del singolo */
-function summaryCols(){
-  if(state.cat==="turnazione") return ["1","2","C"].map(t => ({label: t==="C" ? "C" : t+"T", color:`var(${SHIFTS[t].color})`, v:p=>{ let n=0; for(const x of viewDays()) if(turnOf(p,x.key)===t) n++; return n; }}));
-  if(state.cat==="presenze") return [
+/* ore del periodo per persona: lavorate, straordinario, ferie, PAR, malattia, CIGO */
+function presCols(){ return [
     {label:"Ore", color:"var(--c-pres)", v:p=>sumMonth(p,worked)},
     {label:"Str.", color:"var(--c-stra)", v:p=>sumMonth(p,otDay)},
     {label:"Ferie", color:"var(--c-ferie)", v:p=>sumMonth(p,ferF)},
     {label:"PAR", color:"var(--c-par)", v:p=>sumMonth(p,ferP)},
     {label:"Mal.", color:"var(--c-mal)", v:p=>sumMonth(p,malH)},
     {label:"CIGO", color:"var(--c-cigo)", v:p=>sumMonth(p,cigH)}
-  ];
+  ]; }
+function summaryCols(){
+  if(state.cat==="turnazione") return ["1","2","C"].map(t => ({label: t==="C" ? "C" : t+"T", color:`var(${SHIFTS[t].color})`, v:p=>{ let n=0; for(const x of viewDays()) if(turnOf(p,x.key)===t) n++; return n; }}));
+  if(state.cat==="presenze") return presCols();
   if(state.span==="week") return [{label:"SETT", color:CATCOL[state.cat], month:true}];
   const ranges = [];
   for(const x of viewDays()){ const rg = ranges[x.row] ||= [x.d,x.d,x.key]; rg[1] = x.d; }
@@ -1247,8 +1249,8 @@ function renderMatrix(){
     const nm = p.split(" "), last = nm.pop();
     /* colonna del nome: "F. COPERTINO" su una riga, poi giorni e ore, poi una riga per ogni voce presente */
     const lines = [];
-    if(cat==="presenze"){
-      const [ore, str, fer, par, mal, cig] = summaryCols().map(c => c.v(p));
+    if(cat!=="turnazione"){
+      const [ore, str, fer, par, mal, cig] = presCols().map(c => c.v(p));
       lines.push(`<span style="color:var(--muted)">${st.n} GG</span> · <span style="color:var(--c-pres)">${fmt(ore)} ORE</span>`);
       if(str) lines.push(`<span style="color:var(--c-stra)">+${fmt(str)} ORE EXTRA</span>`);
       if(fer) lines.push(`<span style="color:var(--c-ferie)">+${fmt(fer)} H FERIE</span>`);
