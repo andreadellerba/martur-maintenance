@@ -94,11 +94,12 @@ select.today,.jump{background:var(--surface);color:var(--text);font:inherit;font
 
 /* matrice del reparto */
 .board{padding:0 16px;overflow-x:auto}
-.matrix{--namew:140px;--cmin:0px;min-width:980px;display:flex;flex-direction:column;gap:4px}
+.matrix{--namew:160px;--cmin:0px;min-width:980px;display:flex;flex-direction:column;gap:4px}
 .row{display:grid;grid-template-columns:var(--cols);gap:3px}
-.wkl{text-align:center;font-size:14px;font-weight:800;letter-spacing:.05em;color:var(--text);padding:2px 0 3px;border-bottom:2px solid var(--line-2);white-space:nowrap;overflow:hidden;container-type:inline-size}
+.wkl{display:flex;align-items:center;justify-content:center;height:30px;box-sizing:border-box;font-size:17px;font-family:var(--display);font-weight:800;letter-spacing:.05em;color:var(--text);padding:0;border-bottom:2px solid var(--line-2);white-space:nowrap;overflow:hidden;container-type:inline-size}
 .wkl .ws{display:none}
-@container (max-width:84px){.wkl .wl{display:none}.wkl .ws{display:inline}}
+.wkl span{line-height:1}
+@container (max-width:92px){.wkl .wl{display:none}.wkl .ws{display:inline}}
 .head{height:40px}
 .hname,.fname{display:flex;align-items:flex-end;padding:0 0 6px 6px;font-size:12px;color:var(--faint);font-weight:600}
 .fname{align-items:center;padding:0 0 0 6px;font-size:13px;font-weight:700;color:var(--muted-2)}
@@ -128,7 +129,7 @@ select.today,.jump{background:var(--surface);color:var(--text);font:inherit;font
 .cell.now{box-shadow:inset 0 3px 0 var(--today)}
 .th{white-space:nowrap;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:6px;font-size:15px;font-weight:800;font-family:var(--display);line-height:1.1;text-align:center}
 .th small{font-size:10.5px;font-weight:600;color:var(--muted);white-space:nowrap;font-family:var(--body)}
-.prow{min-height:118px;border-radius:10px}
+.prow{min-height:126px;border-radius:10px}
 
 .prow.on{background:var(--surface);outline:1px solid var(--line-2)}
 .pname{display:flex;align-items:center;gap:10px;padding:0 2px 0 6px;border:0;background:transparent;text-align:left;cursor:pointer;min-width:0;border-radius:10px}
@@ -137,8 +138,8 @@ select.today,.jump{background:var(--surface);color:var(--text);font:inherit;font
 .prow.on .pn b{color:var(--weekend)}
 .pn{display:flex;flex-direction:column;gap:1px;min-width:0;align-self:stretch;padding-block:9px 6px}
 .pn .pls{flex:1;display:flex;flex-direction:column;justify-content:center;gap:1px}
-.pn b{font-size:15px;line-height:1.15;white-space:nowrap;text-transform:uppercase;font-family:var(--display);letter-spacing:.02em}
-.pn small{font-size:13.5px;font-weight:700;color:var(--muted-2);line-height:1.25;white-space:nowrap;text-transform:uppercase;font-family:var(--display);letter-spacing:.02em}
+.pn b{font-size:17.5px;line-height:1.15;white-space:nowrap;text-transform:uppercase;font-family:var(--display);letter-spacing:.02em}
+.pn small{font-size:15px;font-weight:700;color:var(--muted-2);line-height:1.25;white-space:nowrap;text-transform:uppercase;font-family:var(--display);letter-spacing:.02em}
 .pn .pmore{font-size:10.5px;font-weight:600;line-height:1.2}
 .cell{position:relative;border-radius:6px;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;cursor:pointer;min-width:0;font-family:var(--display);line-height:1;background:var(--surface);border:1px solid var(--cell-line);color:var(--text);user-select:none;overflow:hidden}
 .cell:hover{border-color:var(--hover-line)}
@@ -362,22 +363,22 @@ body:not(.locked) .lock{display:none}
 .pdot[aria-pressed="true"]{border-color:var(--text);outline:2px solid var(--text);outline-offset:2px;transform:scale(1.08)}
 .rp-bar,.rp-bar2{display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px}
 .rp-dates{display:flex;gap:10px}
-.rp-dates label{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--muted-2)}
-.rp-dates input{font:inherit;font-size:14px;padding:6px 10px;border:1px solid var(--line-2);border-radius:8px;background:var(--surface);color:var(--text)}
+.rp-dates label{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600;color:var(--muted-2)}
+.rp-dates input{font:inherit;font-size:16px;padding:6px 10px;border:1px solid var(--line-2);border-radius:8px;background:var(--surface);color:var(--text)}
 .rp-pre,.seg2{display:flex;flex-wrap:wrap;gap:6px}
-.rp-chip{height:32px;padding:0 12px;border:1px solid var(--line-2);border-radius:999px;background:transparent;color:var(--btn-text);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.rp-chip{height:36px;padding:0 14px;border:1px solid var(--line-2);border-radius:8px;background:transparent;color:var(--btn-text);font-size:15px;font-weight:600;cursor:pointer;white-space:nowrap}
 .rp-chip:hover{background:var(--surface-2)}
 .rp-chip[aria-pressed="true"]{background:var(--text);border-color:var(--text);color:var(--bg)}
-.rp-h{font-family:var(--display);font-size:24px;font-weight:700;margin:6px 0 0}
+.rp-h{font-family:var(--display);font-size:30px;font-weight:700;margin:6px 0 0}
 .rp-bar2 .rp-h{margin:0;margin-right:auto}
-.rp-note{margin:-8px 0 0;font-size:13px;color:var(--muted)}
+.rp-note{margin:-8px 0 0;font-size:15px;color:var(--muted)}
 .rp-empty{color:var(--weekend);font-weight:600}
 .rp-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
-.rp{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
-.rp th,.rp td{padding:9px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
-.rp thead th{font-size:12px;font-weight:700;color:var(--muted-2);background:var(--surface-2);position:sticky;top:0}
+.rp{border-collapse:collapse;width:100%;font-size:18px;font-family:var(--display);font-weight:600;font-variant-numeric:tabular-nums}
+.rp th,.rp td{padding:11px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+.rp thead th{font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.02em;color:var(--muted-2);background:var(--surface-2);position:sticky;top:0}
 .rp .l{text-align:left;font-weight:700;color:var(--text)}
-.rp .l small{font-weight:500;color:var(--muted);margin-left:6px}
+.rp .l small{font-weight:500;color:var(--muted);margin-left:6px;font-size:14px}
 .rp tbody tr:last-child>*{border-bottom:0}
 .rp tbody tr:hover{background:color-mix(in srgb,var(--text) 4%,transparent)}
 .rp .tot{font-weight:700}
@@ -388,11 +389,11 @@ body:not(.locked) .lock{display:none}
 .rp th.sh:first-of-type,.rp td.sh{border-left:0}
 .swd{display:inline-block;width:9px;height:9px;border-radius:3px;background:var(--sw);margin-right:5px;vertical-align:0}
 .rp-card{display:flex;flex-direction:column;gap:8px}
-.rp-card h3{display:flex;align-items:center;gap:10px;margin:6px 0 0;font-size:16px;font-weight:500;flex-wrap:wrap}
-.rp-card h3 small{font-size:13px;color:var(--muted);font-weight:500;margin-left:6px}
+.rp-card h3{display:flex;align-items:center;gap:10px;margin:6px 0 0;font-size:20px;font-family:var(--display);letter-spacing:.02em;font-weight:500;flex-wrap:wrap}
+.rp-card h3 small{font-size:15px;color:var(--muted);font-weight:500;margin-left:6px}
 .rp-data{margin-top:8px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:14px 18px;border:1px dashed var(--line-2);border-radius:12px}
 .rp-data>span:first-child{display:flex;flex-direction:column;gap:2px;flex:1 1 300px}
-.rp-data small{color:var(--muted);font-size:13px}
+.rp-data small{color:var(--muted);font-size:15px}
 .rp-dact{display:flex;gap:8px}
 /* banner installazione */
 .install{position:fixed;right:20px;bottom:20px;z-index:20;width:min(460px,calc(100% - 40px));display:flex;gap:14px;align-items:flex-start;padding:16px;background:var(--surface);border:1px solid var(--line-2);border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.35)}
@@ -433,6 +434,52 @@ body:not(.locked) .lock{display:none}
   .matrix.one{width:auto;min-width:0}
   .board:has(.one){overflow-x:auto}
 }
+.mob-only{display:none}
+.sheet-bg{position:fixed;inset:0;background:var(--backdrop);z-index:44}
+#filtDlg{width:min(440px,calc(100% - 24px))}
+#filtDlg h2{margin-bottom:14px}
+.fsec{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.flab{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.fjump{font:inherit;font-size:16px;height:42px;padding:0 12px;border:1px solid var(--line-2);border-radius:8px;background:var(--surface-2);color:var(--text);color-scheme:dark}
+@media (max-width:900px){
+  /* telefono: data e pulsante Filtri; il resto nel popup */
+  #subbar #todayBtn,#subbar #spanSel,#subbar #jumpM,#subbar #jumpW,#subbar #viewbar{display:none!important}
+  #filtBtn{display:inline-flex;align-items:center;font-weight:700;color:var(--text)}
+  /* niente esportazioni da telefono */
+  #pdfBtn,#xlsBtn,#bkSave{display:none!important}
+  /* la barra delle voci si apre dal + */
+  .fab{display:grid;place-items:center;position:fixed;right:18px;bottom:calc(18px + env(safe-area-inset-bottom,0px));width:60px;height:60px;border-radius:50%;border:0;background:var(--accent);color:var(--on-accent);font-size:36px;font-weight:600;line-height:1;box-shadow:0 8px 24px rgba(0,0,0,.45);z-index:46;cursor:pointer}
+  .fab[hidden]{display:none}
+  #detail{display:none}
+  body.sheet #detail{display:flex;flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:12px;position:fixed;left:0;right:0;bottom:0;margin:0;max-height:80vh;overflow-y:auto;border-radius:18px 18px 0 0;z-index:45;padding:16px 16px calc(90px + env(safe-area-inset-bottom,0px))}
+  body.sheet #detail .avatar{width:56px;height:56px}
+  body.sheet #detail .dbody{min-height:0;flex:none}
+  body.sheet #detail .avatar{align-self:flex-start}
+  body.sheet #detail .dact{flex-direction:column;gap:6px}
+  body.sheet #detail .act{height:46px;width:100%;font-size:16px;text-align:left;padding:0 16px}
+  /* colonna dei nomi ferma: i giorni scorrono sotto senza superarla */
+  .board{padding:0 0 0 0}
+  .matrix:not(.one) .pname,.matrix:not(.one) .hname,.matrix:not(.one) .fname{box-shadow:4px 0 0 var(--bg);border-radius:0}
+  .prow{border-radius:0}
+}
+@media (max-width:900px){
+  /* telefono: logo e menu su una riga, poi una sola riga con mese, Filtri e Annulla */
+  .hdr{grid-template-columns:auto minmax(0,1fr);justify-items:stretch;align-items:center;padding:8px 12px;gap:10px}
+  .hdr .brand{grid-column:1;justify-self:start}
+  .hdr .brand .logo{height:13px}
+  .hdr .tabsel{grid-column:2;height:38px;font-size:14px}
+  .hdr .hdr-r{display:none}
+  .sub{flex-wrap:nowrap;padding:8px 10px;min-height:0}
+  .mnav{flex-wrap:nowrap;gap:6px;width:100%;justify-content:center}
+  .month{font-size:20px}
+  #undoMob{display:inline-flex;align-items:center;justify-content:center;width:38px;padding:0;font-size:17px;color:var(--text)}
+  #undoMob[disabled]{opacity:.4}
+  .hdr .tabsel{font-size:13px;padding:0 8px}
+  .report{padding:8px 12px 0}
+  .rp-dates{flex-wrap:wrap;gap:8px}
+  .rp-dates input{width:150px;font-size:15px}
+  .rp-h{font-size:24px}
+}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -466,6 +513,8 @@ body:not(.locked) .lock{display:none}
     <h1 class="month" id="month"></h1>
     <button class="arr" id="next" aria-label="Mese successivo">›</button>
     <button class="today" id="todayBtn">Oggi</button>
+    <button class="today mob-only" id="filtBtn" aria-haspopup="dialog">Filtri</button>
+    <button class="today mob-only" id="undoMob" aria-label="Annulla l'ultima azione" title="Annulla">↶</button>
     <select class="today" id="spanSel" aria-label="Vista"><option value="month">Mensile</option><option value="week">Settimanale</option></select>
     <input class="today jump" id="jumpM" type="month" aria-label="Vai al mese" title="Vai a un mese qualsiasi">
     <input class="today jump" id="jumpW" type="week" aria-label="Vai alla settimana" title="Vai a una settimana qualsiasi" hidden>
@@ -594,6 +643,9 @@ body:not(.locked) .lock{display:none}
   </div>
   <div class="dlg-actions"><button type="button" class="btn primary" id="newsOk">Ho capito</button></div>
 </dialog>
+<button class="fab mob-only" id="fab" aria-label="Inserisci turno o voce" title="Inserisci">+</button>
+<div class="sheet-bg" id="sheetBg" hidden></div>
+<dialog id="filtDlg" aria-labelledby="filtTitle"><div id="filtBody"></div></dialog>
 <dialog id="rest">
   <h2 id="restTitle"></h2>
   <p id="restSub"></p>
@@ -1363,9 +1415,10 @@ function render(){
   $("jumpM").hidden = state.span==="week"; $("jumpW").hidden = state.span!=="week";
   $("jumpM").value = iso(state.y,state.m,1).slice(0,7); if(state.span==="week") $("jumpW").value = weekInput(state.wk);
   $("prev").setAttribute("aria-label", state.span==="week" ? "Settimana precedente" : "Mese precedente"); $("next").setAttribute("aria-label", state.span==="week" ? "Settimana successiva" : "Mese successivo");
-  $("undoBtn").disabled = !undoStack.length;
+  $("undoBtn").disabled = $("undoMob").disabled = !undoStack.length;
   $("hint").textContent = CATS.find(c=>c.id===state.cat).hint;
   renderTabs();
+  $("fab").hidden = rp; if(rp) closeSheet();
   if(rp){ $("pdfBtn").hidden = true; $("xlsBtn").hidden = true; st ? renderSettings() : renderReport(); return; }
   renderPalette(); renderViewbar(); renderMatrix(); renderDetail();
 }
@@ -1389,7 +1442,7 @@ $("todayBtn").onclick = () => { state.y=now.getFullYear(); state.m=now.getMonth(
 $("spanSel").onchange = e => setSpan(e.target.value);
 $("jumpM").onchange = e => { const [y,m] = e.target.value.split("-").map(Number); if(!y) return; state.y = y; state.m = m-1; state.sel = null; state.msel = null; render(); };
 $("jumpW").onchange = e => { const k = weekFromInput(e.target.value); if(!k) return; state.wk = k; syncMonth(); state.sel = null; state.msel = null; render(); };
-$("undoBtn").onclick = undo;
+$("undoBtn").onclick = $("undoMob").onclick = undo;
 
 /* palette turni: clic sceglie il pennello, secondo clic lo toglie */
 $("shiftbar").addEventListener("click", e => {
@@ -2317,6 +2370,44 @@ function loadBackup(file){
   };
   fr.readAsText(file);
 }
+
+/* ---------- Telefono: filtri in un popup e barra delle voci dal pulsante + ---------- */
+const isMobile = () => matchMedia("(max-width:900px)").matches;
+function renderFilters(){
+  const wk = state.span==="week";
+  $("filtBody").innerHTML = `<h2>Filtri</h2>
+    <div class="fsec"><span class="flab">Periodo</span><div class="seg2">
+      <button class="rp-chip" data-fspan="month" aria-pressed="${!wk}">Mensile</button>
+      <button class="rp-chip" data-fspan="week" aria-pressed="${wk}">Settimanale</button>
+      <button class="rp-chip" data-ftoday="1">Oggi</button></div></div>
+    <div class="fsec"><label class="flab" for="fJump">${wk ? "Vai alla settimana" : "Vai al mese"}</label>
+      <input class="fjump" id="fJump" type="${wk ? "week" : "month"}" value="${wk ? weekInput(state.wk) : iso(state.y,state.m,1).slice(0,7)}"></div>
+    <div class="fsec"><span class="flab">Persone</span><div class="seg2">
+      ${[[null,"TUTTI"], ...PEOPLE.map(p => [p, surname(p)])].map(([k,l]) => `<button class="rp-chip" data-fview="${k ? esc(k) : ""}" aria-pressed="${state.view===k}">${esc(l)}</button>`).join("")}</div></div>
+    <div class="dlg-actions"><button type="button" class="btn primary" id="filtClose">Fatto</button></div>`;
+}
+$("filtBtn").onclick = () => { renderFilters(); $("filtDlg").showModal(); };
+$("filtDlg").addEventListener("click", e => {
+  if(e.target===$("filtDlg")) return $("filtDlg").close();
+  const b = e.target.closest("button"); if(!b) return;
+  if(b.id==="filtClose") return $("filtDlg").close();
+  if(b.dataset.fspan){ if(b.dataset.fspan!==state.span) setSpan(b.dataset.fspan); }
+  else if(b.dataset.ftoday) $("todayBtn").onclick();
+  else if("fview" in b.dataset){ state.view = b.dataset.fview || null; if(state.view) state.person = state.view; state.sel = null; state.msel = null; render(); }
+  renderFilters();
+});
+$("filtDlg").addEventListener("change", e => {
+  if(e.target.id!=="fJump") return;
+  if(state.span==="week"){ const k = weekFromInput(e.target.value); if(k){ state.wk = k; syncMonth(); } }
+  else { const [y,m] = e.target.value.split("-").map(Number); if(y){ state.y = y; state.m = m-1; } }
+  state.sel = null; state.msel = null; render();
+});
+/* il + apre la barra delle voci come lista dal basso; si chiude toccando fuori o dopo una scelta */
+function openSheet(){ document.body.classList.add("sheet"); $("sheetBg").hidden = false; $("detail").scrollTop = 0; }
+function closeSheet(){ document.body.classList.remove("sheet"); $("sheetBg").hidden = true; }
+$("fab").onclick = () => document.body.classList.contains("sheet") ? closeSheet() : openSheet();
+$("sheetBg").onclick = closeSheet;
+$("detail").addEventListener("click", e => { if(isMobile() && e.target.closest(".act")) setTimeout(closeSheet, 0); });
 
 /* ---------- Impostazioni: tema e colori ---------- */
 const COLOR_DEFS = [
