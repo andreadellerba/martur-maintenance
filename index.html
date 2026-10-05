@@ -426,7 +426,7 @@ body:not(.locked) .lock{display:none}
   .month{min-width:0;font-size:22px}
   .viewbar{justify-content:center}
   .board{overflow-x:auto;-webkit-overflow-scrolling:touch}
-  .matrix{--namew:118px;--cmin:50px;min-width:0;width:max-content}
+  .matrix{--namew:118px;--cmin:38px;min-width:0;width:max-content}
   .matrix:not(.one) .pname,.matrix:not(.one) .hname,.matrix:not(.one) .fname{position:sticky;left:0;z-index:3;background:var(--bg)}
   .matrix:not(.one) .wkrow>div:first-child{position:sticky;left:0;z-index:3;background:var(--bg)}
   .detail{flex-wrap:wrap}
@@ -459,9 +459,14 @@ body:not(.locked) .lock{display:none}
   body.sheet #detail .dact{flex-direction:column;gap:6px}
   body.sheet #detail .act{height:46px;width:100%;font-size:16px;text-align:left;padding:0 16px}
   /* colonna dei nomi ferma: i giorni scorrono sotto senza superarla */
-  .board{padding:0 0 0 0}
-  .matrix:not(.one) .pname,.matrix:not(.one) .hname,.matrix:not(.one) .fname{box-shadow:4px 0 0 var(--bg);border-radius:0}
+  .board{padding:0 0 0 8px}
+  .matrix:not(.one) .pname,.matrix:not(.one) .hname,.matrix:not(.one) .fname{box-shadow:4px 0 0 var(--bg),-8px 0 0 var(--bg);border-radius:0}
   .prow{border-radius:0}
+  /* riga selezionata: cornice attorno alla colonna del nome, staccata dal bordo dello schermo */
+  .prow.on{outline:0;background:transparent}
+  .matrix:not(.one) .prow.on .pname{background:var(--surface);border:1px solid var(--line-2);border-right:0;border-radius:10px 0 0 10px}
+  .hdr .tabsel{border:0;background:transparent}
+  .cell.tfx .tm b{font-size:12px;letter-spacing:-.01em}
 }
 @media (max-width:900px){
   /* telefono: logo e menu su una riga, poi una sola riga con mese, Filtri e Annulla */
