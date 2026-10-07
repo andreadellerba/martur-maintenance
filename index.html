@@ -866,7 +866,10 @@ function staffCalc(v,p,k){
   const sp = v!==undefined ? shiftSpan(v) : null;
   /* orario normale: il turno scelto; con l'orario manuale" le 8 ore dentro l'orario più vicine al 07-15 (10-18 è tutto normale) */
   let win = !sp ? [420,900] : sp;
-  if(sp && sid(v)==="M" && sp[1]-sp[0] > 480){ const ws = Math.min(Math.max(420, sp[0]), sp[1]-480); win = [ws, ws+480]; }
+  /* la pausa mensa non è lavoro: allunga l'orario normale della sua durata (07-15:30 con mezz'ora di mensa = 8 ore, niente straordinario) */
+  const mm = Math.round(menH(p,k) * 60), L = 480 + mm;
+  if(sp && sid(v)==="M" && sp[1]-sp[0] > L){ const ws = Math.min(Math.max(420, sp[0]), sp[1]-L); win = [ws, ws+L]; }
+  else if(sp && sid(v)!=="M" && mm) win = [win[0], win[1] + mm];
   const segs = sp ? [sp] : [];
   const us = uscSpan(p,k);
   if(us) segs.push(us); else { const n = Number(get("uscita",p,k)) || 0; if(n && sp) segs.push([sp[1], sp[1] + n*60]); }
@@ -875,9 +878,10 @@ function staffCalc(v,p,k){
   const minutes = [...set].sort((x,y) => x-y), dur = minutes.length/60;
   if(!isWorkday(k)){
     const sat = keyDate(k).getDay()===6 && !holidays(Number(k.slice(0,4)))[k];
-    if(!sat) return {dur, ot:dur, worked:0, bands:[[55, dur]]};
-    const h50 = Math.min(dur, 8);
-    return {dur, ot:dur, worked:0, bands:[[50, h50], [55, dur - h50]].filter(x => x[1] > 0)};
+    const net = Math.max(0, dur - mm/60);   /* nel fine settimana la mensa si toglie dalle ore pagate */
+    if(!sat) return {dur, ot:net, worked:0, bands:[[55, net]]};
+    const h50 = Math.min(net, 8);
+    return {dur, ot:net, worked:0, bands:[[50, h50], [55, net - h50]].filter(x => x[1] > 0)};
   }
   let inside = 0, otm = 0; const bm = {};
   for(const m of minutes){
@@ -886,7 +890,7 @@ function staffCalc(v,p,k){
     const t = m % 1440, r = otm>120 ? 30 : (t>=1080 && t<1320) ? 20 : 25;
     bm[r] = (bm[r] || 0) + 1;
   }
-  return {dur, ot:otm/60, worked:Math.min(DAY_H, inside/60), bands:Object.entries(bm).map(([r,n]) => [Number(r), n/60])};
+  return {dur, ot:otm/60, worked:Math.min(DAY_H, Math.max(0, inside - mm)/60), bands:Object.entries(bm).map(([r,n]) => [Number(r), n/60])};
 }
 /* ore di straordinario del periodo divise per maggiorazione: {25: 3, 30: 1, ...} */
 function staffBands(p){
@@ -912,7 +916,7 @@ function baseCalc(p,k){
   return c;
 }
 /* ore di assenza (ferie, PAR, malattia, CIGO): prevalgono sul turno */
-const absH    = (p,k) => ferF(p,k) + ferP(p,k) + malH(p,k) + cigH(p,k) + visH(p,k) + menH(p,k);
+const absH    = (p,k) => ferF(p,k) + ferP(p,k) + malH(p,k) + cigH(p,k) + visH(p,k) + (isStaff(p) ? 0 : menH(p,k));
 const worked  = (p,k) => Math.min(baseCalc(p,k).worked, Math.max(0, DAY_H - absH(p,k)));
 const otAuto  = (p,k) => (isWorkday(k) && absH(p,k) >= DAY_H) ? 0 : baseCalc(p,k).ot;
 const otExtra = (p,k) => Number(get("straordinario",p,k)) || 0;
@@ -930,7 +934,7 @@ const menH    = (p,k) => Number(get("mensa",p,k)) || 0;
 /* commento libero della casella (persona + giorno), visibile passando col mouse */
 const noteOf  = (p,k) => { const n = get("note",p,k); return typeof n==="string" ? n : ""; };
 const hasNote = (p,k) => !!(noteOf(p,k) || get("ferie",p,k)?.n || malE(p,k).n);
-const covered = (p,k) => worked(p,k) + absH(p,k);
+const covered = (p,k) => worked(p,k) + absH(p,k) + (isStaff(p) ? menH(p,k) : 0);
 /* valore di una categoria in un giorno, in ore */
 function hoursOf(cat,p,k){
   if(cat==="straordinario") return otDay(p,k);
