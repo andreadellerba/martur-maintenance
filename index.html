@@ -308,11 +308,12 @@ body:not(.locked) .lock{display:none}
 .vb:hover{background:var(--surface-2)}
 .vb[aria-pressed="true"]{background:var(--text);border-color:var(--text);color:var(--bg)}
 .matrix.one{min-width:0;max-width:1100px;margin:0 auto;gap:12px}
-/* personale: la colonna del riepilogo sta a sinistra, il calendario resta largo come quello del singolo dipendente */
-.matrix.one:has(.s-wrap){max-width:1326px}
+/* personale: calendario centrato largo come quello del singolo, report sotto a tutta larghezza */
+.matrix.one:has(.s-cal){max-width:none}
+.s-cal{width:100%;max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
 .s-rep{margin-top:6px}
 .s-rep .rp{width:100%}
-.s-rep .rp th,.s-rep .rp td{padding:10px 6px}
+.s-rep .rp th,.s-rep .rp td{padding:10px 6px;text-align:center}
 .s-rep .rp thead th{font-size:12px}
 .s-rep .rp th.l{padding-left:12px}
 .s-head{display:flex;align-items:center;gap:12px}
@@ -1307,11 +1308,8 @@ function renderSingle(p){
   else if(cat==="ferie") tots = [{label:"Ferie", color:"var(--c-ferie)", v:ghost(sumMonth(p,ferF))},{label:"PAR", color:"var(--c-par)", v:ghost(sumMonth(p,ferP))}];
   else tots = [{label:state.span==="week" ? "Settimana" : "Mese", color:CATCOL[cat], v:ghost(sumMonth(p,(q,k)=>hoursOf(cat,q,k)))}];
   if(!state.staff) html += `<div class="s-tots">${tots.map(t => `<span class="s-tot" style="color:${t.color}"><small>${t.label}</small><b>${t.v}</b></span>`).join("")}</div>`;
-  /* personale: a sinistra la colonna con nome e riepilogo, come nel calendario degli altri */
-  if(state.staff){
-    const short = `${nm.map(w => w[0] + ".").join(" ")} ${last}`;
-    html = `<div class="s-wrap"><aside class="s-side"><span class="pn"><b>${esc(short)}</b><span class="pls">${nameLines(p, cat).map(l => `<small>${l}</small>`).join("")}</span></span></aside><div class="s-main">${html}${cat==="presenze" ? staffReportHTML(p) : ""}</div></div>`;
-  }
+  /* personale: niente colonna a sinistra; calendario centrato e sotto il report a tutta larghezza */
+  if(state.staff) html = `<div class="s-cal">${html}</div>${cat==="presenze" ? staffReportHTML(p) : ""}`;
   $("matrix").innerHTML = html;
   $("matrix").classList.add("one");
 }
@@ -2936,7 +2934,7 @@ function lockMsg(t){ $("lockErr").textContent = t; $("lockErr").hidden = !t; }
       $("lockPw").value = "";
       document.body.classList.remove("locked");
       if(!unsub) listen();
-      setTimeout(() => showNews(false), 400);
+      /* il popup delle novità non si apre più da solo: si ritrova in Impostazioni */
       render();
     } else {
       unlocked = false;
