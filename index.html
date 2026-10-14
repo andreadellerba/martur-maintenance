@@ -1362,8 +1362,8 @@ function staffReportHTML(p){
   const cols = [
     ["Giorni", st.gg, ""], ["Ore ordinarie", st.ord, "c-pres"], ["Straord.", st.ot, "c-stra"], ["Totale ore", st.ord + st.ot, "tot"],
     ...[20,25,30,50,55].map(r => [`+${r}%`, bands[r] || 0, "c-stra"]),
-    ["Ferie", st.f, "c-ferie"], ["PAR", st.par, "c-par"], ["Malattia", st.mal, "c-mal"], ["CIGO", st.cig, "c-cigo"],
-    ["Visita med.", st.vis, "c-vis"], ["Mensa", st.men, "c-men"], ["Uscite", us, "c-usc", zh], ["Ticket", tk, "c-tic"]
+    ["Ferie", st.f, "c-ferie", zh], ["PAR", st.par, "c-par", zh], ["Malattia", st.mal, "c-mal", zh], ["CIGO", st.cig, "c-cigo", zh],
+    ["Visita med.", st.vis, "c-vis", zh], ["Mensa", st.men, "c-men"], ["Uscite", us, "c-usc", zh], ["Ticket", tk, "c-tic"]
   ];
   return `<div class="rp-scroll s-rep"><table class="rp"><thead><tr><th class="l"></th>${cols.map(c => `<th class="${c[2]}">${c[0]}</th>`).join("")}</tr></thead>
     <tbody><tr><th class="l">${esc(surname(p))}</th>${cols.map(c => `<td class="${c[2]}">${(c[3] || z)(c[1])}</td>`).join("")}</tr></tbody></table></div>`;
