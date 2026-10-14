@@ -575,6 +575,11 @@ body.locked{background:var(--bg)}
 .bgpal{display:grid;grid-template-columns:repeat(auto-fill,minmax(34px,1fr));gap:6px}
 .bgdot{aspect-ratio:1;border-radius:10px;border:1px solid rgba(var(--ov),.18);cursor:pointer;padding:0}
 .bgdot[aria-pressed="true"]{outline:2px solid var(--text);outline-offset:2px}
+/* tema chiaro: le scritte colorate dei pulsanti (turni e voci) si scuriscono per
+   leggersi sul bianco. Solo il testo: caselle e riempimenti restano uguali. */
+:root[data-theme="light"] .act{color:color-mix(in srgb,var(--ac) 58%,#000);border-color:color-mix(in srgb,var(--ac) 60%,#fff)}
+:root[data-theme="light"] .act:hover{background:color-mix(in srgb,var(--ac) 14%,#fff)}
+:root[data-theme="light"] .chip b{color:var(--text)}
 </style>
 </head>
 <body data-cat="presenze" class="locked">
@@ -1359,11 +1364,12 @@ function staffReportHTML(p){
   const z = n => n > 0.001 ? fmt(n) : `<span class="zero">–</span>`;
   /* uscite in ore scritte per esteso: "2 ore", "1 ora", "1,5 ore" */
   const zh = n => n > 0.001 ? (Math.abs(n - 1) < 0.001 ? "1 ora" : fmt(n) + " ore") : `<span class="zero">–</span>`;
+  const zg = n => n > 0.001 ? (Math.abs(n - 1) < 0.001 ? "1 giorno" : fmt(n) + " gg") : `<span class="zero">–</span>`;
   const cols = [
-    ["Giorni", st.gg, ""], ["Ore ordinarie", st.ord, "c-pres"], ["Straord.", st.ot, "c-stra"], ["Totale ore", st.ord + st.ot, "tot"],
-    ...[20,25,30,50,55].map(r => [`+${r}%`, bands[r] || 0, "c-stra"]),
+    ["Giorni", st.gg, "", zg], ["Ore ordinarie", st.ord, "c-pres", zh], ["Straord.", st.ot, "c-stra", zh], ["Totale ore", st.ord + st.ot, "tot", zh],
+    ...[20,25,30,50,55].map(r => [`+${r}%`, bands[r] || 0, "c-stra", zh]),
     ["Ferie", st.f, "c-ferie", zh], ["PAR", st.par, "c-par", zh], ["Malattia", st.mal, "c-mal", zh], ["CIGO", st.cig, "c-cigo", zh],
-    ["Visita med.", st.vis, "c-vis", zh], ["Mensa", st.men, "c-men"], ["Uscite", us, "c-usc", zh], ["Ticket", tk, "c-tic"]
+    ["Visita med.", st.vis, "c-vis", zh], ["Mensa", st.men, "c-men", zh], ["Uscite", us, "c-usc", zh], ["Ticket", tk, "c-tic"]
   ];
   return `<div class="rp-scroll s-rep"><table class="rp"><thead><tr><th class="l"></th>${cols.map(c => `<th class="${c[2]}">${c[0]}</th>`).join("")}</tr></thead>
     <tbody><tr><th class="l">${esc(surname(p))}</th>${cols.map(c => `<td class="${c[2]}">${(c[3] || z)(c[1])}</td>`).join("")}</tr></tbody></table></div>`;
@@ -2809,7 +2815,7 @@ function renderSettings(){
     <div class="set-card"><div class="set-head"><h2>Sfondo</h2>${typeof col.sfondo==="string" ? `<button class="btn-o" id="bgReset">Sfondo originale</button>` : ""}</div>
     <p class="set-note">Il colore del fondo pagina, come su Martur dashboard. Le caselle del calendario non cambiano. Vale per tutti e due.</p>
     <div class="bgpal" role="group" aria-label="Colore dello sfondo">${BG_PALETTE.map(([c,n]) => `<button class="bgdot" data-bgpick="${c}" title="${n}" aria-label="${n}" style="background:${bgTone(c)}" aria-pressed="${(col.sfondo||"").toLowerCase()===c.toLowerCase()}"></button>`).join("")}</div></div>
-    <div class="set-card"><div class="set-head"><h2>Novità</h2><button class="btn-o" id="newsOpen">Vedi le novità</button></div><p class="set-note">L'elenco delle ultime modifiche all'app.</p></div>`;
+    `;
   h += `<div class="set-card"><div class="set-head"><h2>Colori</h2>${Object.keys(col).some(k => typeof col[k]==="string") ? `<button class="btn-o" id="colResetAll">Ripristina tutti i colori originali</button>` : ""}</div>
     <p class="set-note">Clicca sul colore per sceglierne un altro. I colori valgono per tutti e due.</p>`;
   for(const [g, items] of COLOR_DEFS){
