@@ -537,6 +537,44 @@ body:not(.locked) .lock{display:none}
   .hdiv{display:block;flex:none;width:1.5px;height:22px;border-radius:2px;background:linear-gradient(to bottom,transparent,#D7B261 25%,#D7B261 75%,transparent)}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* ═══ STILE VETRO SCURO (proposta 2) — solo l'aspetto di barra, pulsanti e
+   riquadri. Le caselle del calendario NON vengono toccate. ═══ */
+:root{--ov:255,255,255;--glass:rgba(22,23,27,.86);--glow:rgba(var(--ov),.0)}
+:root[data-theme="light"]{--ov:0,0,0;--glass:rgba(255,255,255,.86)}
+html,body{background:var(--bg) radial-gradient(130% 440px at 50% -110px,color-mix(in srgb,var(--accent) 16%,transparent),transparent 70%) no-repeat}
+body.locked{background:var(--bg)}
+/* barra unica di vetro, con il logo dentro */
+.hdr{margin:10px 12px 0;top:10px;height:56px;padding:0 8px 0 20px;border:.5px solid rgba(var(--ov),.2);border-radius:999px;
+  background:var(--glass);-webkit-backdrop-filter:blur(30px) saturate(200%);backdrop-filter:blur(30px) saturate(200%);
+  box-shadow:0 10px 30px rgba(0,0,0,.45),inset 0 1px 0 rgba(var(--ov),.14),inset 0 -1px 0 rgba(0,0,0,.2)}
+.pills{background:transparent;padding:0;gap:2px}
+.pill{color:rgba(var(--ov),.62)}
+.pill:hover{color:var(--text);background:rgba(var(--ov),.07)}
+.pill[aria-selected="true"]{background:rgba(var(--ov),.14);color:var(--accent);box-shadow:inset 0 1px 0 rgba(var(--ov),.25)}
+:root[data-theme="light"] .pill[aria-selected="true"]{color:color-mix(in srgb,var(--accent) 75%,#000)}
+/* pulsanti a pillola di vetro */
+.btn-o,.today,.mnav .arr{border:.5px solid rgba(var(--ov),.2);border-radius:999px;background:linear-gradient(180deg,rgba(var(--ov),.10),rgba(var(--ov),.035));box-shadow:inset 0 1px 0 rgba(var(--ov),.12)}
+.mnav .arr{width:34px}
+.xls{border-radius:999px}
+/* meno spazio dove non serve */
+.sub{min-height:0;padding:10px 16px 8px;gap:8px 20px}
+.detail{margin:0 12px 10px;padding:10px 14px;border-radius:22px;border:.5px solid rgba(var(--ov),.18);
+  background:linear-gradient(180deg,rgba(var(--ov),.09),rgba(var(--ov),.03));box-shadow:0 10px 30px rgba(0,0,0,.35),inset 0 1px 0 rgba(var(--ov),.12)}
+.board{padding:0 12px}
+/* riquadri di Impostazioni, Report e Personale */
+.set-card,.rp-scroll,.s-side{border:.5px solid rgba(var(--ov),.18);border-radius:22px;background:linear-gradient(180deg,rgba(var(--ov),.09),rgba(var(--ov),.03));box-shadow:0 10px 30px rgba(0,0,0,.3),inset 0 1px 0 rgba(var(--ov),.12)}
+.lock-box{border-radius:24px;border:.5px solid rgba(var(--ov),.2);background:linear-gradient(180deg,rgba(var(--ov),.10),rgba(var(--ov),.03));box-shadow:0 14px 40px rgba(0,0,0,.5),inset 0 1px 0 rgba(var(--ov),.14)}
+@media (max-width:900px), (max-height:500px) and (pointer:coarse){
+  .hdr{margin:8px 8px 0;top:8px;padding:6px 14px;border-radius:999px}
+  .detail{margin:0 8px 8px}
+  .board{padding:0 8px}
+}
+/* PC stretto: la barra va su due righe (logo sopra, menu sotto) e si allunga */
+@media (min-width:901px) and (max-width:1320px){.hdr{height:auto;padding:8px 14px;border-radius:28px}}
+/* sfondo scelto in Impostazioni (tavolozza come Martur dashboard) */
+.bgpal{display:grid;grid-template-columns:repeat(auto-fill,minmax(34px,1fr));gap:6px}
+.bgdot{aspect-ratio:1;border-radius:10px;border:1px solid rgba(var(--ov),.18);cursor:pointer;padding:0}
+.bgdot[aria-pressed="true"]{outline:2px solid var(--text);outline-offset:2px}
 </style>
 </head>
 <body data-cat="presenze" class="locked">
@@ -2725,6 +2763,23 @@ const PALETTE = [
   ["#FFD000","Giallo oro"],["#FFC400","Ambra"],["#FF9E00","Arancione"],["#FF6D00","Arancione scuro"],["#FF7043","Corallo"],["#F08A24","Marrone caldo"],
   ["#C98B55","Nocciola"],["#BCAAA4","Tortora"],["#B4C3D9","Grigio azzurro"],["#CFD8DC","Grigio chiaro"],["#FFFFFF","Bianco"]
 ];
+/* sfondo: stessa tavolozza di Martur dashboard, ordinata per tinta (neutri in fondo).
+   Si cambia solo il fondo pagina: nel tema scuro diventa una tinta molto scura, nel
+   chiaro una tinta molto chiara, cosi' testi e caselle restano leggibili. */
+const BG_PALETTE = (() => {
+  const all = [["#d8cdb5","Sabbia"],["#f1ece1","Avorio"],["#c9ccd1","Grigio"],["#b8c2ae","Salvia"],["#b7b3ad","Grigio perla"],["#a89f91","Tortora"],["#b39b77","Cammello"],["#8b7f73","Taupe"],["#7f97ad","Blu polvere"],["#4f6a84","Blu acciaio"],["#5b6770","Ardesia"],["#3d4a5c","Blu ardesia"],["#2f5d62","Ottanio"],["#6c7a64","Salvia scura"],["#3f5a4a","Verde bosco"],["#7d8566","Oliva tenue"],["#a4705a","Terracotta"],["#7a4b3e","Mattone"],["#8e7a8f","Malva"],["#5c4358","Prugna"],["#4d3b30","Caffe"],["#45413c","Antracite"],["#a8e6cf","Menta"],["#a9d6f5","Cielo"],["#c9b6ee","Lavanda"],["#ff9ebb","Rosa"],["#ffb38a","Pesca"],["#ffd23f","Giallo"],["#b5e61d","Lime"],["#ff7a00","Arancio"],["#e01e37","Rosso"],["#e0007a","Magenta"],["#8a2be2","Viola"],["#1f5fe0","Blu"],["#1fa2ff","Azzurro"],["#00c2c7","Turchese"],["#00a86b","Smeraldo"],["#2f9e44","Verde"],["#6b7a2a","Oliva"],["#0f5257","Petrolio"],["#1f3150","Blu notte"],["#6e1f2c","Burgundy"],["#5a3825","Cioccolato"],["#3f4045","Grafite"],["#121212","Nero"],["#f6f4ef","Bianco latte"],["#ece4d4","Carta"],["#f3e6c4","Crema"],["#efe2b4","Vaniglia"],["#e6d3b3","Champagne"],["#ddd3c2","Lino"],["#b4b2ad","Cemento"],["#d4d9dd","Nebbia"],["#b9bdc2","Argento"],["#8f9196","Fumo"],["#6b6e74","Piombo"],["#2b2b2e","Carbone"],["#f1d3d0","Cipria"],["#c9a3a0","Rosa antico"],["#f4a48f","Salmone"],["#ff7f6b","Corallo"],["#f8b878","Albicocca"],["#e07b2a","Zucca"],["#d4a72c","Senape"],["#c08a2e","Ocra"],["#a88b3a","Ottone"],["#b9ad85","Cachi"],["#bfae8b","Sabbia scura"],["#a86b34","Caramello"],["#7a5532","Tabacco"],["#a2462a","Ruggine"],["#b2182b","Ciliegia"],["#7e1f2b","Granata"],["#5e1c32","Vinaccia"],["#4b2a45","Melanzana"],["#ff2fa6","Fucsia"],["#c56fc9","Orchidea"],["#b5a3d9","Glicine"],["#a99bb8","Lilla polvere"],["#7b52ab","Ametista"],["#3b3b8f","Indaco"],["#8c9eff","Pervinca"],["#6495ed","Fiordaliso"],["#2a8fbd","Ceruleo"],["#1f4fa8","Cobalto"],["#1c3f7a","Zaffiro"],["#3f5f8f","Denim"],["#1b2a49","Blu marina"],["#151c2c","Inchiostro"],["#dcecf2","Ghiaccio"],["#7fd4c1","Acquamarina"],["#3fb8a6","Verde acqua"],["#2e9c7c","Giada"],["#14727a","Teal"],["#0d3b40","Abisso"],["#bcd59a","Pistacchio"],["#cfd8c4","Salvia chiara"],["#7d8a4d","Muschio"],["#4f7942","Felce"],["#264d33","Foresta"],["#4b5320","Verde militare"],["#9be22d","Verde acido"],["#f4ff52","Giallo neon"],["#fff176","Limone"],["#ff9a5a","Tramonto"],["#d6336c","Lampone"],["#2b5bff","Blu elettrico"],["#00d5e6","Ciano"]];
+  const hsl = hex => { const n = parseInt(hex.slice(1),16), r = (n>>16&255)/255, g = (n>>8&255)/255, b = (n&255)/255;
+    const mx = Math.max(r,g,b), mn = Math.min(r,g,b), l = (mx+mn)/2, d = mx-mn; let h = 0;
+    const s = d ? d/(1-Math.abs(2*l-1)) : 0;
+    if(d) h = mx===r ? ((g-b)/d)%6 : mx===g ? (b-r)/d+2 : (r-g)/d+4;
+    return [(h*60+360)%360, s, l]; };
+  return all.sort((a,b) => { const A = hsl(a[0]), Bb = hsl(b[0]), na = A[1]<.14, nb = Bb[1]<.14;
+    if(na!==nb) return na ? 1 : -1; if(na) return Bb[2]-A[2];
+    const ha = Math.floor(A[0]/15), hb = Math.floor(Bb[0]/15); return ha!==hb ? ha-hb : Bb[2]-A[2]; });
+})();
+function bgTone(c){
+  return document.documentElement.dataset.theme==="light" ? `color-mix(in srgb, ${c} 22%, #f6f7f8)` : `color-mix(in srgb, ${c} 34%, #08090b)`;
+}
 /* il colore dei weekend si porta dietro sfondo, bordo e testo della colonna */
 function weekendSet(c){
   const light = document.documentElement.dataset.theme==="light";
@@ -2740,6 +2795,9 @@ function applyColors(){
     if(ok) root.setProperty(v, c); else root.removeProperty(v);
     if(v==="--weekend") for(const [k,x] of Object.entries(weekendSet(c || "#000"))) ok ? root.setProperty(k, x) : root.removeProperty(k);
   }
+  /* sfondo scelto dalla tavolozza: cambia solo il fondo pagina, mai le caselle */
+  const bg = col.sfondo;
+  if(typeof bg==="string" && /^#[0-9a-f]{6}$/i.test(bg)) root.setProperty("--bg", bgTone(bg)); else root.removeProperty("--bg");
 }
 let colorOpen = null;
 function renderSettings(){
@@ -2748,6 +2806,9 @@ function renderSettings(){
   let h = `<div class="set-card"><h2>Tema</h2>
     <div class="seg2"><button class="rp-chip" data-theme-set="dark" aria-pressed="${theme==="dark"}">Scuro</button><button class="rp-chip" data-theme-set="light" aria-pressed="${theme==="light"}">Chiaro</button></div>
     <p class="set-note">Vale solo per questo dispositivo.</p></div>
+    <div class="set-card"><div class="set-head"><h2>Sfondo</h2>${typeof col.sfondo==="string" ? `<button class="btn-o" id="bgReset">Sfondo originale</button>` : ""}</div>
+    <p class="set-note">Il colore del fondo pagina, come su Martur dashboard. Le caselle del calendario non cambiano. Vale per tutti e due.</p>
+    <div class="bgpal" role="group" aria-label="Colore dello sfondo">${BG_PALETTE.map(([c,n]) => `<button class="bgdot" data-bgpick="${c}" title="${n}" aria-label="${n}" style="background:${bgTone(c)}" aria-pressed="${(col.sfondo||"").toLowerCase()===c.toLowerCase()}"></button>`).join("")}</div></div>
     <div class="set-card"><div class="set-head"><h2>Novità</h2><button class="btn-o" id="newsOpen">Vedi le novità</button></div><p class="set-note">L'elenco delle ultime modifiche all'app.</p></div>`;
   h += `<div class="set-card"><div class="set-head"><h2>Colori</h2>${Object.keys(col).some(k => typeof col[k]==="string") ? `<button class="btn-o" id="colResetAll">Ripristina tutti i colori originali</button>` : ""}</div>
     <p class="set-note">Clicca sul colore per sceglierne un altro. I colori valgono per tutti e due.</p>`;
@@ -2767,6 +2828,8 @@ function renderSettings(){
 $("settings").addEventListener("click", e => {
   const t = e.target.closest("button"); if(!t) return;
   if(t.dataset.themeSet){ lsSet(THEME_KEY, t.dataset.themeSet); applyTheme(t.dataset.themeSet); render(); return; }
+  if(t.dataset.bgpick){ const c = t.dataset.bgpick; commit(() => { data.colori ??= {}; data.colori.sfondo = c; }); return; }
+  if(t.id==="bgReset"){ commit(() => { if(data.colori) delete data.colori.sfondo; }); return; }
   if(t.dataset.col){ colorOpen = colorOpen===t.dataset.col ? null : t.dataset.col; renderSettings(); return; }
   if(t.dataset.pick){ const v = t.dataset.v, c = t.dataset.pick; colorOpen = null; commit(() => { data.colori ??= {}; data.colori[v] = c; }); return; }
   if(t.dataset.colreset){ const v = t.dataset.colreset; commit(() => { if(data.colori) delete data.colori[v]; }); return; }
