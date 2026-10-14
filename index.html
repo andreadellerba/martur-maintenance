@@ -1319,14 +1319,16 @@ function staffReportHTML(p){
   const sum = fn => keys.reduce((a,k) => a + fn(p,k), 0);
   const tk = sum((q,k) => Number(get("ticket",q,k)) || 0), us = sum(uscH);
   const z = n => n > 0.001 ? fmt(n) : `<span class="zero">–</span>`;
+  /* uscite in ore scritte per esteso: "2 ore", "1 ora", "1,5 ore" */
+  const zh = n => n > 0.001 ? (Math.abs(n - 1) < 0.001 ? "1 ora" : fmt(n) + " ore") : `<span class="zero">–</span>`;
   const cols = [
     ["Giorni", st.gg, ""], ["Ore ordinarie", st.ord, "c-pres"], ["Straord.", st.ot, "c-stra"], ["Totale ore", st.ord + st.ot, "tot"],
     ...[20,25,30,50,55].map(r => [`+${r}%`, bands[r] || 0, "c-stra"]),
     ["Ferie", st.f, "c-ferie"], ["PAR", st.par, "c-par"], ["Malattia", st.mal, "c-mal"], ["CIGO", st.cig, "c-cigo"],
-    ["Visita med.", st.vis, "c-vis"], ["Mensa", st.men, "c-men"], ["Uscite", us, "c-usc"], ["Ticket", tk, "c-tic"]
+    ["Visita med.", st.vis, "c-vis"], ["Mensa", st.men, "c-men"], ["Uscite", us, "c-usc", zh], ["Ticket", tk, "c-tic"]
   ];
   return `<div class="rp-scroll s-rep"><table class="rp"><thead><tr><th class="l"></th>${cols.map(c => `<th class="${c[2]}">${c[0]}</th>`).join("")}</tr></thead>
-    <tbody><tr><th class="l">${esc(surname(p))}</th>${cols.map(c => `<td class="${c[2]}">${z(c[1])}</td>`).join("")}</tr></tbody></table></div>`;
+    <tbody><tr><th class="l">${esc(surname(p))}</th>${cols.map(c => `<td class="${c[2]}">${(c[3] || z)(c[1])}</td>`).join("")}</tr></tbody></table></div>`;
 }
 /* sabati e domeniche senza niente inserito: colonna stretta (resta solo il numero) */
 function dayHasData(p, k){
@@ -2710,7 +2712,7 @@ $("detail").addEventListener("click", e => { if(isMobile() && e.target.closest("
 
 /* ---------- Impostazioni: tema e colori ---------- */
 const COLOR_DEFS = [
-  ["Turni", [["--s1l","Turno 05:30-14:00"],["--s1","Turno 06:00-14:00"],["--s2","Turno 14:00-22:00"],["--s2l","Turno 14:00-22:30"],["--sc","Turno centrale 07:00-15:00"],["--sm","Orario manuale"]]],
+  ["Turni", [["--s1l","Turno 05:30-14:00"],["--s2l","Turno 14:00-22:30"],["--sc","Turno centrale 07:00-15:00"],["--sm","Orario manuale"]]],
   ["Voci", [["--c-pres","Ore lavorate"],["--c-stra","Straordinario"],["--c-ferie","Ferie"],["--c-par","PAR"],["--c-mal","Malattia"],["--c-cigo","CIGO"],["--c-vis","Visita medica"],["--c-men","Pausa mensa"],["--c-tic","Ticket (personale)"],["--c-usc","Uscita di servizio (personale)"]]],
   ["Calendario", [["--weekend","Sabati, domeniche e festivi"],["--today","Oggi"]]]
 ];
