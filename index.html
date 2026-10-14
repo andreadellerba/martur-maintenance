@@ -626,6 +626,34 @@ body.locked{background:var(--bg)}
 .vb[aria-pressed="true"],.rp-chip[aria-pressed="true"]{background:var(--text);border-color:var(--text);color:var(--bg)}
 select.today option{background:var(--surface);color:var(--text)}
 .set-card,.rp-scroll,.s-side{background:linear-gradient(180deg,rgba(var(--ov),.09),rgba(var(--ov),.03)),linear-gradient(var(--panel),var(--panel))}
+/* ═══ colori pieni, senza sfumature (sfondo e riquadri scelti in Impostazioni) ═══ */
+html,body{background:var(--bg)}
+.vb,.rp-chip,.btn-o,.today,.jump,select.today,.mnav .arr,.rp-dates input{background:var(--panel);box-shadow:none}
+.vb:hover,.rp-chip:hover,.today:hover,.mnav .arr:hover{background:color-mix(in srgb,var(--panel) 80%,rgb(var(--ov)))}
+.vb[aria-pressed="true"],.rp-chip[aria-pressed="true"]{background:var(--text);border-color:var(--text);color:var(--bg)}
+.detail,.set-card,.rp-scroll,.s-side{background:var(--panel);box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.pname{background:linear-gradient(var(--panel),var(--panel)),var(--bg);box-shadow:none}
+/* testo sopra lo sfondo scelto: bianco o scuro in automatico */
+:root.bgx .month,:root.bgx .vb-l,:root.bgx .wkl,:root.bgx .hname,:root.bgx .fname,:root.bgx .dh:not(.we):not(.now):not(.hol),:root.bgx .rp-h,:root.bgx .report > p,:root.bgx .hint{color:var(--bg-ink)}
+/* riquadri e pillole col colore pieno: testo in contrasto automatico */
+:root.pnx .hdr{background:var(--panel)}
+:root.pnx .pill{color:color-mix(in srgb,var(--panel-ink) 72%,transparent)}
+:root.pnx .pill:hover{color:var(--panel-ink);background:color-mix(in srgb,var(--panel-ink) 10%,transparent)}
+:root.pnx .pill[aria-selected="true"]{background:var(--panel-ink);color:var(--panel);box-shadow:none}
+:root.pnx .vb,:root.pnx .rp-chip,:root.pnx .btn-o,:root.pnx .today,:root.pnx .jump,:root.pnx select.today,:root.pnx .mnav .arr,:root.pnx .rp-dates input{color:var(--panel-ink);border-color:color-mix(in srgb,var(--panel-ink) 25%,transparent)}
+:root.pnx .vb[aria-pressed="true"],:root.pnx .rp-chip[aria-pressed="true"]{background:var(--panel-ink);color:var(--panel);border-color:var(--panel-ink)}
+:root.pnx .detail,:root.pnx .set-card,:root.pnx .s-side,:root.pnx .pname{color:var(--panel-ink)}
+:root.pnx .set-card .set-note,:root.pnx .set-card h3{color:color-mix(in srgb,var(--panel-ink) 70%,transparent)}
+/* sopra un riquadro colorato i pulsanti dei turni tengono il loro fondo, così il colore del turno si legge */
+:root.pnx .detail .act,:root.pnx .detail .chip{background:var(--surface)}
+:root.pnx .detail .dnum{box-shadow:0 0 0 2px color-mix(in srgb,var(--panel-ink) 30%,transparent)}
+:root.pnx .detail :is(span,small,p,em,i):not(.act *):not(.chip *):not(.dnum *){color:color-mix(in srgb,var(--panel-ink) 78%,transparent)}
+.xls{color:var(--surface)}
+:root.pnx .hdr .xls{background:var(--panel-ink);color:var(--panel)}
+:root.pnx .hdr .tabsel{color:var(--panel-ink)}
+:root.pnx .hdr .brand-txt{color:var(--panel-ink)}
+:root.pnx .pname .pn small,:root.pnx .pname .pn small *{color:var(--panel-ink)!important;opacity:.85}
+:root.pnx .mnav .today,:root.pnx .mnav .arr{color:var(--panel-ink)!important}
 </style>
 </head>
 <body data-cat="presenze" class="locked">
@@ -2854,13 +2882,22 @@ function applyColors(){
     if(ok) root.setProperty(v, c); else root.removeProperty(v);
     if(v==="--weekend") for(const [k,x] of Object.entries(weekendSet(c || "#000"))) ok ? root.setProperty(k, x) : root.removeProperty(k);
   }
-  /* sfondo scelto dalla tavolozza: cambia solo il fondo pagina, mai le caselle */
-  const bg = col.sfondo;
-  if(typeof bg==="string" && /^#[0-9a-f]{6}$/i.test(bg)) root.setProperty("--bg", bgTone(bg)); else root.removeProperty("--bg");
-  /* riquadri (nomi dei dipendenti e pillola d'inserimento orari): tinta di vetro per staccarli dallo sfondo */
-  const pn = col.riquadri, light = document.documentElement.dataset.theme==="light";
-  if(typeof pn==="string" && /^#[0-9a-f]{6}$/i.test(pn)) root.setProperty("--panel", `color-mix(in srgb, ${pn} ${light ? 22 : 30}%, transparent)`); else root.removeProperty("--panel");
+  /* sfondo e riquadri: il colore scelto così com'è, pieno e acceso (niente sfumature),
+     con il testo sopra che diventa bianco o scuro da solo per restare leggibile.
+     Le caselle del calendario non cambiano. */
+  const ok6 = c => typeof c==="string" && /^#[0-9a-f]{6}$/i.test(c);
+  const ink = c => lumHex(c) > 0.22 ? "#14171C" : "#FFFFFF";
+  const html = document.documentElement, bg = col.sfondo, pn = col.riquadri;
+  if(ok6(bg)){ root.setProperty("--bg", bg); root.setProperty("--bg-ink", ink(bg)); html.classList.add("bgx"); }
+  else { root.removeProperty("--bg"); root.removeProperty("--bg-ink"); html.classList.remove("bgx"); }
+  if(ok6(pn)){ root.setProperty("--panel", pn); root.setProperty("--panel-ink", ink(pn)); html.classList.add("pnx"); }
+  else { root.removeProperty("--panel"); root.removeProperty("--panel-ink"); html.classList.remove("pnx"); }
   syncLogoAccent();
+}
+/* luminosità percepita di un colore #rrggbb (0 = nero, 1 = bianco) */
+function lumHex(c){
+  const n = parseInt(c.slice(1),16), f = v => { v /= 255; return v <= .03928 ? v/12.92 : Math.pow((v+.055)/1.055, 2.4); };
+  return .2126*f(n>>16&255) + .7152*f(n>>8&255) + .0722*f(n&255);
 }
 /* il "MARTUR" del logo (oro nell'immagine) prende il colore della pagina; ITALY tricolore resta com'è */
 const logoCache = {}; let logoSrc = null;
@@ -2900,10 +2937,10 @@ function renderSettings(){
     <p class="set-note">Vale solo per questo dispositivo.</p></div>
     <div class="set-card"><div class="set-head"><h2>Sfondo</h2>${typeof col.sfondo==="string" ? `<button class="btn-o" id="bgReset">Sfondo originale</button>` : ""}</div>
     <p class="set-note">Il colore del fondo pagina, come su Martur dashboard. Le caselle del calendario non cambiano. Vale per tutti e due.</p>
-    <div class="bgpal" role="group" aria-label="Colore dello sfondo">${BG_PALETTE.map(([c,n]) => `<button class="bgdot" data-bgpick="${c}" title="${n}" aria-label="${n}" style="background:${bgTone(c)}" aria-pressed="${(col.sfondo||"").toLowerCase()===c.toLowerCase()}"></button>`).join("")}</div></div>
+    <div class="bgpal" role="group" aria-label="Colore dello sfondo">${BG_PALETTE.map(([c,n]) => `<button class="bgdot" data-bgpick="${c}" title="${n}" aria-label="${n}" style="background:${c}" aria-pressed="${(col.sfondo||"").toLowerCase()===c.toLowerCase()}"></button>`).join("")}</div></div>
     <div class="set-card"><div class="set-head"><h2>Riquadri</h2>${typeof col.riquadri==="string" ? `<button class="btn-o" id="pnReset">Colore originale</button>` : ""}</div>
     <p class="set-note">Il colore di vetro dei riquadri con i nomi dei dipendenti e della pillola per inserire gli orari, per staccarli dallo sfondo. Le caselle del calendario non cambiano. Vale per tutti e due.</p>
-    <div class="bgpal" role="group" aria-label="Colore dei riquadri">${BG_PALETTE.map(([c,n]) => `<button class="bgdot" data-pnpick="${c}" title="${n}" aria-label="${n}" style="background:color-mix(in srgb, ${c} 45%, var(--bg))" aria-pressed="${(col.riquadri||"").toLowerCase()===c.toLowerCase()}"></button>`).join("")}</div></div>
+    <div class="bgpal" role="group" aria-label="Colore dei riquadri">${BG_PALETTE.map(([c,n]) => `<button class="bgdot" data-pnpick="${c}" title="${n}" aria-label="${n}" style="background:${c}" aria-pressed="${(col.riquadri||"").toLowerCase()===c.toLowerCase()}"></button>`).join("")}</div></div>
     `;
   h += `<div class="set-card"><div class="set-head"><h2>Colori</h2>${Object.keys(col).some(k => typeof col[k]==="string") ? `<button class="btn-o" id="colResetAll">Ripristina tutti i colori originali</button>` : ""}</div>
     <p class="set-note">Clicca sul colore per sceglierne un altro. I colori valgono per tutti e due.</p>`;
