@@ -618,6 +618,14 @@ body.locked{background:var(--bg)}
 @keyframes quizShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 /* la barra del menu segue il colore scelto per i riquadri */
 .hdr{background:linear-gradient(var(--panel),var(--panel)),var(--glass)}
+/* tutte le pillole (barra del mese, filtri Vista, scelte di Report/Impostazioni) e i riquadri
+   di Personale/Report/Impostazioni seguono il colore scelto in Impostazioni > Riquadri */
+.vb,.rp-chip,.btn-o,.today,.jump,select.today,.mnav .arr,.rp-dates input{border:.5px solid rgba(var(--ov),.2);border-radius:999px;
+  background:linear-gradient(180deg,rgba(var(--ov),.10),rgba(var(--ov),.035)),linear-gradient(var(--panel),var(--panel));box-shadow:inset 0 1px 0 rgba(var(--ov),.12)}
+.vb:hover,.rp-chip:hover,.today:hover,.mnav .arr:hover{background:linear-gradient(180deg,rgba(var(--ov),.16),rgba(var(--ov),.06)),linear-gradient(var(--panel),var(--panel))}
+.vb[aria-pressed="true"],.rp-chip[aria-pressed="true"]{background:var(--text);border-color:var(--text);color:var(--bg)}
+select.today option{background:var(--surface);color:var(--text)}
+.set-card,.rp-scroll,.s-side{background:linear-gradient(180deg,rgba(var(--ov),.09),rgba(var(--ov),.03)),linear-gradient(var(--panel),var(--panel))}
 </style>
 </head>
 <body data-cat="presenze" class="locked">
