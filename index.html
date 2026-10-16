@@ -2360,7 +2360,7 @@ async function exportExcel(){
     const border = {top:thin, left:thin, bottom:thin, right:thin};
     /* colonna Dipendente larga quanto la parola più lunga dei nomi (nome e cognome vanno su due righe) */
     const nameW = Math.max(10, ...PEOPLE.flatMap(p => p.split(" ").map(w => w.length))) + 2.5;
-    ws.columns = [{width:nameW},{width:15}, ...days.map(()=>({width:12.5})), {width:11}];
+    ws.columns = [{width:nameW},{width:22}, ...days.map(()=>({width:12.5})), {width:11}];
 
     ws.mergeCells(`A1:${last}1`);
     ws.getCell("A1").value = `GESTIONE PRESENZE MANUTENZIONE – ${MONTHS[m].toUpperCase()} ${y}`;
@@ -2407,7 +2407,7 @@ async function exportExcel(){
       totRef[p] = {};
       LINES.forEach((ln, li) => {
         const row = ws.getRow(r);
-        row.getCell(2).value = ln.label; row.height = 22;
+        row.getCell(2).value = ln.label.toUpperCase(); row.height = 22;
         days.forEach((x,i) => {
           const cell = row.getCell(i+3);
           let hex = null;
@@ -2431,7 +2431,7 @@ async function exportExcel(){
         totRef[p][ln.label] = `${last}${r}`;
         for(let c=1; c<=totCol; c++) ws.getRow(r).getCell(c).border = border;
         if(li===LINES.length-1) for(let c=1; c<=totCol; c++) ws.getRow(r).getCell(c).border = {...border, bottom:{style:"medium", color:{argb:DARK}}};
-        row.getCell(2).font = {color:{argb: ln.hex ? "FF"+ln.hex : "FF4A515B"}, size:10, bold:true};
+        row.getCell(2).font = {color:{argb: ln.hex ? "FF"+ln.hex : "FF4A515B"}, size:14, bold:true}; row.getCell(2).alignment = {vertical:"middle"};
         r++;
       });
       ws.mergeCells(`A${start}:A${r-1}`);
