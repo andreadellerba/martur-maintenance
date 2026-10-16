@@ -2359,8 +2359,8 @@ async function exportExcel(){
     const thin = {style:"thin", color:{argb:"FFD0D5DC"}};
     const border = {top:thin, left:thin, bottom:thin, right:thin};
     /* colonna Dipendente larga quanto la parola più lunga dei nomi (nome e cognome vanno su due righe) */
-    const nameW = Math.max(10, ...PEOPLE.flatMap(p => p.split(" ").map(w => w.length))) * 1.25 + 3;
-    ws.columns = [{width:nameW},{width:15}, ...days.map(()=>({width:10.5})), {width:11}];
+    const nameW = Math.max(10, ...PEOPLE.flatMap(p => p.split(" ").map(w => w.length))) + 2.5;
+    ws.columns = [{width:nameW},{width:15}, ...days.map(()=>({width:12.5})), {width:11}];
 
     ws.mergeCells(`A1:${last}1`);
     ws.getCell("A1").value = `GESTIONE PRESENZE MANUTENZIONE – ${MONTHS[m].toUpperCase()} ${y}`;
@@ -2380,13 +2380,13 @@ async function exportExcel(){
     for(const row of [h3,h4]){
       for(let c=1; c<=totCol; c++){
         const cell = row.getCell(c);
-        cell.font = {bold:true, color:{argb:"FFFFFFFF"}, size:row===h3?14:11};
+        cell.font = {bold:true, color:{argb:"FFFFFFFF"}, size:row===h3?16:12};
         cell.fill = {type:"pattern", pattern:"solid", fgColor:{argb:DARK}};
         cell.alignment = {horizontal:"center", vertical:"middle"};
       }
     }
     ws.mergeCells("A3:A4"); ws.mergeCells("B3:B4"); ws.mergeCells(`${last}3:${last}4`);
-    h3.height = 24; h4.height = 18;
+    h3.height = 26; h4.height = 19;
     days.forEach((x,i) => { if(x.dow>4 || hol[x.key]) for(const row of [h3,h4]) row.getCell(i+3).fill = {type:"pattern", pattern:"solid", fgColor:{argb:RED}}; });
 
     const LINES = [
@@ -2407,16 +2407,16 @@ async function exportExcel(){
       totRef[p] = {};
       LINES.forEach((ln, li) => {
         const row = ws.getRow(r);
-        row.getCell(2).value = ln.label; row.height = 19;
+        row.getCell(2).value = ln.label; row.height = 22;
         days.forEach((x,i) => {
           const cell = row.getCell(i+3);
           let hex = null;
           if(ln.text){
             const t = xlDay(p, x.key);
-            if(t.text){ cell.value = t.text; hex = t.hex; cell.font = {size: t.text.length>5 ? 10 : 12, bold:true, color:{argb:"FF"+hex}}; }
+            if(t.text){ cell.value = t.text; hex = t.hex; cell.font = {size: t.text.length>5 ? 11 : 14, bold:true, color:{argb:"FF"+hex}}; }
           } else {
             const v = ln.val(p, x.key);
-            if(v){ cell.value = r2(v); cell.numFmt = "General"; hex = ln.hex; cell.font = {bold:true, size:12, color:{argb:"FF"+hex}}; }
+            if(v){ cell.value = r2(v); cell.numFmt = "General"; hex = ln.hex; cell.font = {bold:true, size:14, color:{argb:"FF"+hex}}; }
           }
           if(hex) cell.fill = {type:"pattern", pattern:"solid", fgColor:{argb:tint(hex)}};
           else if(x.dow>4 || hol[x.key]) cell.fill = {type:"pattern", pattern:"solid", fgColor:{argb:REDBG}};
