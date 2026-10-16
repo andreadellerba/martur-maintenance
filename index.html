@@ -1317,12 +1317,13 @@ function cellHTML(p, x, hol, big){
       if(ot){ band.push(`<span class="bx" style="--mc:var(--c-stra)">+${fmt(ot)}H</span>`); aria += `, straordinario ${fmt(ot)} ore`; }
       const miss = isWorkday(k) && covered(p,k)>0 && covered(p,k)<DAY_H ? DAY_H - covered(p,k) : 0;
       if(miss){ band.push(`<span class="bx" style="--mc:var(--weekend)" title="Mancano ${fmt(miss)} ore">−${fmt(miss)}H</span>`); aria += `, mancano ${fmt(miss)} ore`; }
-      /* personale: uscita di servizio e ticket nella fascia */
+      /* uscita di servizio (solo personale) e ticket (tutti) nella fascia */
       if(isStaff(p)){
-        const u = uscH(p,k), tk = Number(get("ticket",p,k)) || 0;
+        const u = uscH(p,k);
         if(u){ band.push(`<span class="bx" style="--mc:var(--c-usc)">USC ${fmt(u)}H</span>`); aria += `, uscita di servizio ${fmt(u)} ore`; }
-        if(tk){ band.push(`<span class="bx" style="--mc:var(--c-tic)">TICKET ${tk}</span>`); aria += `, ${tk} ticket`; }
       }
+      { const tk = Number(get("ticket",p,k)) || 0;
+        if(tk){ band.push(`<span class="bx" style="--mc:var(--c-tic)">TICKET ${tk}</span>`); aria += `, ${tk} ticket`; } }
       const missDot = miss ? `<span class="missc" title="Mancano ${fmt(miss)} ore"></span>` : "";
       inner = missDot + `<span class="tm"><b>${hhmm(a)}</b><i class="sep"></i><b>${hhmm(b)}</b></span>` + (band.length ? `<span class="band">${band.join("")}</span>` : "");
       aria += `, turno ${timeLabel(v)}`;
@@ -1457,8 +1458,8 @@ function nameLines(p, cat){
       if(vis) L("--c-vis", `+${fmt(vis)} H VISITA MEDICA`);
       if(men) L("--c-men", `+${fmt(men)} H PAUSA MENSA`);
       if(us) L("--c-usc", `USCITE: ${fmt(us)} H`);
-      if(tk) L("--c-tic", `TICKET: ${tk}`);
     }
+    { const tk = sum((q,k) => Number(get("ticket",q,k)) || 0); if(tk) L("--c-tic", `TICKET: ${tk}`); }
     if(fer) L("--c-ferie", `+${fmt(fer)} H FERIE`);
     if(par) L("--c-par", `+${fmt(par)} H PAR`);
     if(mal) L("--c-mal", `+${fmt(mal)} ORE MALATTIA`);
@@ -1637,7 +1638,8 @@ function presBtns(p, k){
     <button class="act" data-a="cigo" style="--ac:var(--c-cigo)">CIGO</button>
     <button class="act" data-a="visita" style="--ac:var(--c-vis)">Visita medica</button>
     <button class="act" data-a="mensa" style="--ac:var(--c-men)">Pausa mensa</button>
-    ${state.staff ? `<button class="act" data-a="ticket" style="--ac:var(--c-tic)">Ticket</button>
+    <button class="act" data-a="ticket" style="--ac:var(--c-tic)">Ticket</button>
+    ${state.staff ? `
     <button class="act" data-a="uscita" style="--ac:var(--c-usc)">Uscita di servizio</button>` : ""}
     ${one ? holBtn(k) : ""}
     ${one ? noteBtn(p,k) : `<button class="act" data-a="note">Commento</button>`}
@@ -2398,7 +2400,8 @@ async function exportExcel(){
       {label:"Malattia",       val:malH,   hex:"DC2626"},
       {label:"CIGO",           val:cigH,   hex:"8B5A2B"},
       {label:"Visita medica",  val:visH,   hex:"0D9488"},
-      {label:"Pausa mensa",    val:menH,   hex:"EA580C"}
+      {label:"Pausa mensa",    val:menH,   hex:"EA580C"},
+      {label:"Ticket",         val:(p,k) => Number(get("ticket",p,k)) || 0, hex:"C2185B", count:true}
     ];
     let r = 5;
     const totRef = {};
@@ -2424,7 +2427,7 @@ async function exportExcel(){
         });
         const tc = row.getCell(totCol), range = `C${r}:${colName(totCol-1)}${r}`;
         tc.value = ln.text ? monthStats("presenze", p).n : {formula:`SUM(${range})`};
-        tc.numFmt = ln.text ? '0" gg"' : 'General" h"';
+        tc.numFmt = ln.text ? '0" gg"' : ln.count ? '0' : 'General" h"';
         tc.font = {bold:true, color:{argb: ln.hex ? "FF"+ln.hex : DARK}};
         tc.fill = {type:"pattern", pattern:"solid", fgColor:{argb: ln.hex ? tint(ln.hex) : GREY}};
         tc.alignment = {horizontal:"center"};
@@ -2451,8 +2454,8 @@ async function exportExcel(){
     ws.getCell(`A${r}`).value = `RIEPILOGO ${MONTHS[m].toUpperCase()} ${y}`;
     ws.getCell(`A${r}`).font = {bold:true, size:13};
     r++;
-    const SUMHEX = [null, "059669", "059669", "B45309", "2563EB", "0891B2", "DC2626", "8B5A2B", "0D9488", "EA580C"];
-    const heads = ["Dipendente","Giorni","Ore lav.","Straord.","Ferie","PAR","Malattia","CIGO","Visita med.","Mensa"];
+    const SUMHEX = [null, "059669", "059669", "B45309", "2563EB", "0891B2", "DC2626", "8B5A2B", "0D9488", "EA580C", "C2185B"];
+    const heads = ["Dipendente","Giorni","Ore lav.","Straord.","Ferie","PAR","Malattia","CIGO","Visita med.","Mensa","Ticket"];
     const hr = ws.getRow(r);
     heads.forEach((h,i) => {
       const c = hr.getCell(i === 0 ? 1 : i+1);
@@ -2465,7 +2468,7 @@ async function exportExcel(){
     for(const p of PEOPLE){
       const row = ws.getRow(r);
       row.getCell(1).value = p; row.getCell(1).font = {bold:true};
-      ["Turno","Ore lavorate","Straordinario","Ferie","PAR","Malattia","CIGO","Visita medica","Pausa mensa"].forEach((lab,i) => {
+      ["Turno","Ore lavorate","Straordinario","Ferie","PAR","Malattia","CIGO","Visita medica","Pausa mensa","Ticket"].forEach((lab,i) => {
         const c = row.getCell(i+2);
         c.value = {formula: totRef[p][lab]};
         c.numFmt = i===0 ? "0" : "General";
