@@ -1453,7 +1453,7 @@ function staffReportHTML(p){
   const zg = n => n > 0.001 ? (Math.abs(n - 1) < 0.001 ? "1 giorno" : fmt(n) + " gg") : `<span class="zero">–</span>`;
   const cols = [
     ["Giorni", st.gg, "", zg], ["Ore ordinarie", st.ord, "c-pres", zh], ["Straord.", st.ot, "c-stra", zh], ["Totale ore", st.ord + st.ot, "tot", zh],
-    ...[20,25,30,50,55].map(r => [`+${r}%`, bands[r] || 0, "c-stra", zh]),
+    ...[20,25,30,50,55].map(r => [r===20 ? "Maggiorazione" : `+${r}%`, bands[r] || 0, "c-stra", zh]),
     ["Ferie", st.f, "c-ferie", zh], ["PAR", st.par, "c-par", zh], ["Malattia", st.mal, "c-mal", zh], ["CIGO", st.cig, "c-cigo", zh],
     ["Visita med.", st.vis, "c-vis", zh], ["Mensa", st.men, "c-men", zh], ["Uscite", us, "c-usc", zh], ["Ticket", tk, "c-tic"]
   ];
