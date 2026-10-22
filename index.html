@@ -720,6 +720,20 @@ html,body{background:var(--bg)}
         <label>Alle<input id="tEnd" type="time" step="900"></label>
       </div>
       <p class="calc" id="tCalc"></p>
+      <!-- turno manuale: salva l'orario e aggiunge subito una voce (es. 08-17 con 1 h di pausa mensa = niente straordinario) -->
+      <div id="tExtra" style="margin-top:14px">
+        <label class="restlab">Salva con anche (ore)<input id="tXH" type="number" min="0" max="8" step="0.25" inputmode="decimal" placeholder="Ore, es. 1"></label>
+        <div class="restbtns" id="tXBtns">
+          <button type="button" class="btn" data-c="f" data-y="">Ferie</button>
+          <button type="button" class="btn" data-c="f" data-y="AP">Ferie AP</button>
+          <button type="button" class="btn" data-c="p" data-y="">PAR</button>
+          <button type="button" class="btn" data-c="p" data-y="AP">PAR AP</button>
+          <button type="button" class="btn" data-c="visita">Visita medica</button>
+          <button type="button" class="btn" data-c="mensa">Pausa mensa</button>
+          <button type="button" class="btn" data-c="cigo">CIGO</button>
+          <button type="button" class="btn" data-c="malattia">Malattia</button>
+        </div>
+      </div>
     </div>
     <div class="dlg-actions">
       <button type="button" class="btn ghost" id="dlgClear">Rimuovi</button>
@@ -759,6 +773,11 @@ html,body{background:var(--bg)}
   <h2 id="newsTitle">Novità dell'app</h2>
   <p>Le ultime modifiche. Questo messaggio compare una volta sola: lo ritrovi in Impostazioni.</p>
   <div class="news">
+    <section><h3>Novità del 22 ottobre</h3><ul>
+      <li><b>Orario manuale</b>: nel popup ci sono anche i pulsanti Ferie, Ferie AP, PAR, PAR AP, Visita medica, <b>Pausa mensa</b>, CIGO e Malattia: salvano l'orario e la voce insieme. Esempio: <b>08:00-17:00</b> con <b>1 h di pausa mensa</b> = 8 ore, niente straordinario.</li>
+      <li>Il tasto Invio / Vai della tastiera non chiude più il popup: si salva solo con <b>Salva</b> (o con un pulsante).</li>
+      <li>Excel: righe e colonne <b>Ferie AP</b> e <b>PAR AP</b> (le ferie e i PAR dell'anno corrente restano nelle loro righe).</li>
+    </ul></section>
     <section><h3>Novità del 9 ottobre</h3><ul>
       <li>Tolti i pulsanti <b>06:00-14:00</b> e <b>14:00-22:00</b>: se servono si inseriscono con l'orario manuale. I giorni già segnati restano. Tasti: 1 = 05:30-14:00, 2 = 14:00-22:30, 3 = 07:00-15:00, 4 = orario manuale.</li>
       <li>Personale: con l'orario manuale <b>07:00-15:30</b> la mezz'ora di mensa è già contata (8 ore, niente straordinario).</li>
@@ -1028,10 +1047,18 @@ function baseCalc(p,k){
   const c = id==="M" ? manualCalc(v.s,v.e) : {dur: SHIFTS[id]?.dur || DAY_H, ot: SHIFTS[id]?.ot || 0, worked: DAY_H};
   /* sabato, domenica e festivi: tutte le ore sono straordinario */
   if(!isWorkday(k)) return {dur:c.dur, ot:c.dur, worked:0};
+  /* orario manuale più lungo di 8 ore con la pausa mensa: la mensa sta dentro l'orario e toglie lo straordinario (08-17 con 1 h di mensa = 8 ore) */
+  const mi = menIn(p,k); if(mi) return {...c, ot: c.ot - mi};
   return c;
 }
+/* operai, orario manuale: parte della pausa mensa che sta dentro le ore oltre le 8 (non è un'assenza, toglie straordinario) */
+function menIn(p,k){
+  if(isStaff(p) || !isWorkday(k)) return 0;
+  const v = presV(p,k); if(sid(v)!=="M") return 0;
+  return Math.min(menH(p,k), manualCalc(v.s, v.e).ot);
+}
 /* ore di assenza (ferie, PAR, malattia, CIGO): prevalgono sul turno */
-const absH    = (p,k) => ferF(p,k) + ferP(p,k) + malH(p,k) + cigH(p,k) + visH(p,k) + (isStaff(p) ? 0 : menH(p,k));
+const absH    = (p,k) => ferF(p,k) + ferP(p,k) + malH(p,k) + cigH(p,k) + visH(p,k) + (isStaff(p) ? 0 : menH(p,k) - menIn(p,k));
 const worked  = (p,k) => Math.min(baseCalc(p,k).worked, Math.max(0, DAY_H - absH(p,k)));
 const otAuto  = (p,k) => (isWorkday(k) && absH(p,k) >= DAY_H) ? 0 : baseCalc(p,k).ot;
 const otExtra = (p,k) => Number(get("straordinario",p,k)) || 0;
@@ -2148,6 +2175,7 @@ function openTime(key){
   $("hoursMode").hidden = true; $("timeMode").hidden = false;
   $("dlgTitle").textContent = "Turno manuale";
   $("dlgSub").textContent = dateLabel(key);
+  $("tExtra").hidden = false; delete $("tXH").dataset.touched;
   $("tStart").value = t.s; $("tEnd").value = t.e; updateCalc();
   $("dlgClear").style.visibility = cur!==undefined ? "visible" : "hidden";
   $("dlg").showModal(); $("tStart").focus();
@@ -2157,7 +2185,7 @@ let multiUsc = null;
 function openUscita(key, pairs = null){
   editing = key; dlgMode = "uscita"; multiTime = null; multiKeys = null; multiUsc = pairs;
   const v = get("uscita", state.person, key), t = v && v.s ? v : {s:"15:00", e:"16:00"};
-  $("hoursMode").hidden = true; $("timeMode").hidden = false;
+  $("hoursMode").hidden = true; $("timeMode").hidden = false; $("tExtra").hidden = true;
   $("dlgTitle").textContent = "Uscita di servizio";
   $("dlgSub").textContent = (pairs ? multiSub(pairs, "L'orario vale") : dateLabel(key) + ".") + " Dentro l'orario del turno è lavoro normale, fuori è straordinario.";
   $("tStart").step = $("tEnd").step = "1800";
@@ -2178,13 +2206,44 @@ function staffPreview(s, e){
   const r = baseCalc(p,k); if(saved===undefined) delete bucket("presenze",p)[k]; else bucket("presenze",p)[k] = saved;
   return `<strong>${fmt(r.worked)} h</strong> normali, <strong>${fmt(r.ot)} h</strong> di straordinario (fuori dal 07-15)`;
 }
+/* turno manuale: ore proposte per i bottoni = quelle oltre le 8 (es. 08-17 → 1 h di mensa) o quelle che mancano */
+function tExtraHours(){
+  const s = $("tStart").value, e = $("tEnd").value; if(!s || !e) return "";
+  const c = manualCalc(s, e);
+  return c.ot > 0 ? r2(c.ot) : c.worked < DAY_H ? r2(DAY_H - c.worked) : "";
+}
 function updateCalc(){
+  if(dlgMode==="time" && !$("tXH").dataset.touched) $("tXH").value = tExtraHours();
   const s = $("tStart").value, e = $("tEnd").value;
   if(!s || !e){ $("tCalc").textContent = ""; return; }
   if(isStaff(state.person)){ $("tCalc").innerHTML = staffPreview(s, e); return; }
   const c = manualCalc(s,e);
   $("tCalc").innerHTML = `<strong>${fmt(c.worked)} h</strong> lavorate` + (c.ot ? `, <strong>${fmt(c.ot)} h</strong> di straordinario (oltre le 8 ore)` : c.worked<DAY_H ? `, restano <strong>${fmt(DAY_H-c.worked)} h</strong> da coprire` : "");
 }
+$("tXH").addEventListener("input", () => { $("tXH").dataset.touched = "1"; });
+/* turno manuale + voce: salva l'orario e aggiunge le ore scelte (anche su più caselle) */
+$("tXBtns").addEventListener("click", e => {
+  const x = e.target.closest("button[data-c]"); if(!x) return;
+  const s = $("tStart").value, en = $("tEnd").value, v = parseFloat(String($("tXH").value).replace(",","."));
+  if(!s || !en) return;
+  if(isNaN(v) || v<=0){ $("tXH").focus(); return; }
+  lastTimes = {s, e:en};
+  const c = x.dataset.c, pairs = multiTime || [{p:state.person, k:editing}];
+  multiTime = null;
+  $("dlg").close();
+  commit(() => {
+    pairs.forEach(({p,k}) => {
+      state.person = p;
+      bucket("presenze", p)[k] = {t:"M", s, e:en};
+      if(c==="f" || c==="p") writeHours("ferie", k, (c==="f"?ferF:ferP)(p,k) + v, c, x.dataset.y);
+      else writeHours(c, k, hoursOf(c,p,k) + v);
+    });
+    state.msel = null;
+  });
+  if(pairs.length===1) askRest(pairs[0].k);
+});
+/* Invio/"Vai" della tastiera del telefono non deve chiudere i popup: si salva solo col tasto Salva */
+for(const d of ["dlg","rest"]) $(d).addEventListener("keydown", e => { if(e.key==="Enter" && e.target.tagName==="INPUT") e.preventDefault(); });
 $("tStart").addEventListener("input", updateCalc);
 $("tEnd").addEventListener("input", updateCalc);
 function setType(t){
@@ -2395,8 +2454,10 @@ async function exportExcel(){
       {label:"Turno",          text:true},
       {label:"Ore lavorate",   val:worked, hex:"059669"},
       {label:"Straordinario",  val:otDay,  hex:"B45309"},
-      {label:"Ferie",          val:ferF,   hex:"2563EB"},
-      {label:"PAR",            val:ferP,   hex:"0891B2"},
+      {label:"Ferie",          val:(p,k) => ferA(p,k) ? 0 : ferF(p,k), hex:"2563EB"},
+      {label:"Ferie AP",       val:(p,k) => ferA(p,k) ? ferF(p,k) : 0, hex:"1E40AF"},
+      {label:"PAR",            val:(p,k) => parA(p,k) ? 0 : ferP(p,k), hex:"0891B2"},
+      {label:"PAR AP",         val:(p,k) => parA(p,k) ? ferP(p,k) : 0, hex:"0E7490"},
       {label:"Malattia",       val:malH,   hex:"DC2626"},
       {label:"CIGO",           val:cigH,   hex:"8B5A2B"},
       {label:"Visita medica",  val:visH,   hex:"0D9488"},
@@ -2454,8 +2515,8 @@ async function exportExcel(){
     ws.getCell(`A${r}`).value = `RIEPILOGO ${MONTHS[m].toUpperCase()} ${y}`;
     ws.getCell(`A${r}`).font = {bold:true, size:13};
     r++;
-    const SUMHEX = [null, "059669", "059669", "B45309", "2563EB", "0891B2", "DC2626", "8B5A2B", "0D9488", "EA580C", "C2185B"];
-    const heads = ["Dipendente","Giorni","Ore lav.","Straord.","Ferie","PAR","Malattia","CIGO","Visita med.","Mensa","Ticket"];
+    const SUMHEX = [null, "059669", "059669", "B45309", "2563EB", "1E40AF", "0891B2", "0E7490", "DC2626", "8B5A2B", "0D9488", "EA580C", "C2185B"];
+    const heads = ["Dipendente","Giorni","Ore lav.","Straord.","Ferie","Ferie AP","PAR","PAR AP","Malattia","CIGO","Visita med.","Mensa","Ticket"];
     const hr = ws.getRow(r);
     heads.forEach((h,i) => {
       const c = hr.getCell(i === 0 ? 1 : i+1);
@@ -2468,7 +2529,7 @@ async function exportExcel(){
     for(const p of PEOPLE){
       const row = ws.getRow(r);
       row.getCell(1).value = p; row.getCell(1).font = {bold:true};
-      ["Turno","Ore lavorate","Straordinario","Ferie","PAR","Malattia","CIGO","Visita medica","Pausa mensa","Ticket"].forEach((lab,i) => {
+      ["Turno","Ore lavorate","Straordinario","Ferie","Ferie AP","PAR","PAR AP","Malattia","CIGO","Visita medica","Pausa mensa","Ticket"].forEach((lab,i) => {
         const c = row.getCell(i+2);
         c.value = {formula: totRef[p][lab]};
         c.numFmt = i===0 ? "0" : "General";
@@ -2955,7 +3016,7 @@ $("settings").addEventListener("click", e => {
 });
 
 /* novità: compaiono una volta per ogni aggiornamento, poi si riaprono da Impostazioni */
-const NEWS_KEY = "registro-novita", NEWS_VER = "2026-10-09";
+const NEWS_KEY = "registro-novita", NEWS_VER = "2026-10-22";
 function showNews(force){ if(force || lsGet(NEWS_KEY)!==NEWS_VER){ if(!$("newsDlg").open) $("newsDlg").showModal(); $("newsDlg").scrollTop = 0; } }
 $("newsOk").onclick = () => { lsSet(NEWS_KEY, NEWS_VER); $("newsDlg").close(); };
 $("newsDlg").addEventListener("close", () => lsSet(NEWS_KEY, NEWS_VER));
