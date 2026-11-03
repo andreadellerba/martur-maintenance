@@ -279,6 +279,13 @@ dialog textarea{width:100%;font:inherit;font-size:15px;padding:8px 10px;border:1
 .restbtns [data-c="visita"]{border-color:var(--c-vis);color:var(--c-vis)}
 .restbtns [data-c="mensa"]{border-color:var(--c-men);color:var(--c-men)}
 #tXBtns .btn[aria-pressed="true"]{background:color-mix(in srgb,currentColor 16%,transparent);border-width:2px;font-weight:700}
+#tXList{display:grid;gap:6px;margin-top:10px}
+#tXList:empty{display:none}
+.txrow{display:flex;align-items:center;gap:8px;font-weight:600}
+.txrow span{flex:1}
+.txrow input{width:90px;text-align:center}
+.txrow[data-c="f"]{color:var(--c-ferie)} .txrow[data-c="p"]{color:var(--c-par)} .txrow[data-c="cigo"]{color:var(--c-cigo)}
+.txrow[data-c="malattia"]{color:var(--c-mal)} .txrow[data-c="visita"]{color:var(--c-vis)} .txrow[data-c="mensa"]{color:var(--c-men)}
 .restbtns .btn[disabled]{opacity:.3;cursor:default}
 #yearBtn,#cigBtn{font-size:13px}
 #cigRow{margin-top:10px}
@@ -723,7 +730,7 @@ html,body{background:var(--bg)}
       <p class="calc" id="tCalc"></p>
       <!-- turno manuale: salva l'orario e aggiunge subito una voce (es. 08-17 con 1 h di pausa mensa = niente straordinario) -->
       <div id="tExtra" style="margin-top:14px">
-        <label class="restlab">Aggiungi anche (ore)<input id="tXH" type="number" min="0" max="8" step="0.25" inputmode="decimal" placeholder="Ore, es. 1"></label>
+        <p class="restlab">Aggiungi anche (puoi sceglierne più di una)</p>
         <div class="restbtns" id="tXBtns">
           <button type="button" class="btn" data-c="f" data-y="">Ferie</button>
           <button type="button" class="btn" data-c="f" data-y="AP">Ferie AP</button>
@@ -734,6 +741,7 @@ html,body{background:var(--bg)}
           <button type="button" class="btn" data-c="cigo">CIGO</button>
           <button type="button" class="btn" data-c="malattia">Malattia</button>
         </div>
+        <div id="tXList"></div>
       </div>
     </div>
     <div class="dlg-actions">
@@ -775,7 +783,7 @@ html,body{background:var(--bg)}
   <p>Le ultime modifiche. Questo messaggio compare una volta sola: lo ritrovi in Impostazioni.</p>
   <div class="news">
     <section><h3>Novità del 3 novembre</h3><ul>
-      <li><b>Orario manuale</b>: i pulsanti Ferie, PAR, Pausa mensa, ecc. ora scelgono solo la voce (si accendono, riclicca per toglierla). Il popup si chiude solo con <b>Salva</b>. La descrizione sopra tiene conto della voce scelta: 08:00-17:00 con 1 h di pausa mensa = 8 ore, niente straordinario.</li>
+      <li><b>Orario manuale</b>: i pulsanti Ferie, PAR, Pausa mensa, ecc. ora scelgono le voci, anche più di una insieme (si accendono, riclicca per toglierle), e sotto ognuna ha le sue ore. Il popup si chiude solo con <b>Salva</b>. La descrizione sopra tiene conto delle voci scelte: 08:00-17:00 con 1 h di pausa mensa = 8 ore, niente straordinario.</li>
       <li>Report: tolte le colonne <b>06-14</b> e <b>14-22</b>; dopo Mensa c'è la colonna <b>Ticket</b> con il totale di ogni dipendente (anche per i mesi passati).</li>
       <li>Excel: in fondo c'è la <b>legenda</b> di Ferie AP, PAR AP e CIGO.</li>
     </ul></section>
@@ -2181,7 +2189,7 @@ function openTime(key){
   $("hoursMode").hidden = true; $("timeMode").hidden = false;
   $("dlgTitle").textContent = "Turno manuale";
   $("dlgSub").textContent = dateLabel(key);
-  $("tExtra").hidden = false; delete $("tXH").dataset.touched; setTX(null);
+  $("tExtra").hidden = false; setTX(null);
   $("tStart").value = t.s; $("tEnd").value = t.e; updateCalc();
   $("dlgClear").style.visibility = cur!==undefined ? "visible" : "hidden";
   $("dlg").showModal(); $("tStart").focus();
@@ -2212,55 +2220,68 @@ function staffPreview(s, e){
   const r = baseCalc(p,k); if(saved===undefined) delete bucket("presenze",p)[k]; else bucket("presenze",p)[k] = saved;
   return `<strong>${fmt(r.worked)} h</strong> normali, <strong>${fmt(r.ot)} h</strong> di straordinario (fuori dal 07-15)`;
 }
-/* turno manuale: ore proposte per i bottoni = quelle oltre le 8 (es. 08-17 → 1 h di mensa) o quelle che mancano */
-function tExtraHours(){
-  const s = $("tStart").value, e = $("tEnd").value; if(!s || !e) return "";
-  const c = manualCalc(s, e);
-  return c.ot > 0 ? r2(c.ot) : c.worked < DAY_H ? r2(DAY_H - c.worked) : "";
-}
 function updateCalc(){
-  if(dlgMode==="time" && !$("tXH").dataset.touched) $("tXH").value = tExtraHours();
   const s = $("tStart").value, e = $("tEnd").value;
   if(!s || !e){ $("tCalc").textContent = ""; return; }
   if(dlgMode==="uscita"){ $("tCalc").innerHTML = staffPreview(s, e); return; }
   $("tCalc").innerHTML = timePreview(s, e);
 }
-/* anteprima del turno manuale con la voce scelta (08-17 con 1 h di mensa = 8 ore, niente straordinario) */
-function timePreview(s, e){
-  const p = state.person, k = editing, v = tXVal();
+/* turno manuale: ore lavorate, straordinario e ore che mancano con le voci scelte (senza salvare) */
+function timeCalc(s, e){
+  const p = state.person, k = editing, sel = tXList();
   const saved = TCATS.map(c => data[c]?.[p]?.[k]);
-  applyTime(p, k, s, e, tXSel, v);
-  const w = worked(p,k), ot = otAuto(p,k), miss = isWorkday(k) ? DAY_H - covered(p,k) : 0;
+  applyTime(p, k, s, e, sel);
+  const r = {w:worked(p,k), ot:otAuto(p,k), miss: isWorkday(k) ? DAY_H - covered(p,k) : 0, sel};
   TCATS.forEach((c,i) => { if(saved[i]===undefined) delete bucket(c,p)[k]; else bucket(c,p)[k] = saved[i]; });
-  const xs = tXSel && v ? `, <strong>${fmt(v)} h</strong> di ${tXSel.textContent.toLowerCase()}` : "";
+  return r;
+}
+/* anteprima del turno manuale con le voci scelte (08-17 con 1 h di mensa = 8 ore, niente straordinario) */
+function timePreview(s, e){
+  const {w, ot, miss, sel} = timeCalc(s, e), p = state.person;
+  const lc = t => /^[A-Z]{2}/.test(t) ? t : t[0].toLowerCase() + t.slice(1);   /* "Ferie AP" → "ferie AP", PAR e CIGO restano */
+  const xs = sel.filter(x => x.v).map(x => `, <strong>${fmt(x.v)} h</strong> di ${lc(x.b.textContent)}`).join("");
   return `<strong>${fmt(w)} h</strong> ${isStaff(p) ? "normali" : "lavorate"}${xs}`
     + (ot ? `, <strong>${fmt(ot)} h</strong> di straordinario` + (isStaff(p) ? " (fuori dal 07-15)" : "") : ", niente straordinario")
     + (miss > 0.001 ? `, restano <strong>${fmt(miss)} h</strong> da coprire` : "");
 }
-$("tXH").addEventListener("input", () => { $("tXH").dataset.touched = "1"; updateCalc(); });
-/* turno manuale + voce: il pulsante sceglie la voce (riclicca per toglierla), si salva solo col tasto Salva */
+/* turno manuale + voci: i pulsanti scelgono una o più voci (riclicca per toglierle), ognuna con le sue ore; si salva solo col tasto Salva */
 const TCATS = ["presenze","ferie","malattia","cigo","visita","mensa"];
-let tXSel = null;
-function setTX(b){
-  tXSel = b;
-  $("tXBtns").querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x===b));
+let tXSel = [];   /* pulsanti scelti, in ordine */
+function setTX(list){
+  tXSel = list || [];
+  const old = {}; $("tXList").querySelectorAll("input").forEach(i => { old[i.dataset.i] = i.value; });
+  $("tXBtns").querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", tXSel.includes(x)));
+  const btns = [...$("tXBtns").querySelectorAll("button")];
+  $("tXList").innerHTML = tXSel.map(b => { const i = btns.indexOf(b); return `<label class="txrow" data-c="${b.dataset.c}"><span>${esc(b.textContent)}</span><input type="number" data-i="${i}" min="0" max="24" step="0.25" inputmode="decimal" placeholder="Ore" value="${old[i] ?? ""}"> h</label>`; }).join("");
 }
-const tXVal = () => { const v = parseFloat(String($("tXH").value).replace(",",".")); return isNaN(v) || v<=0 ? 0 : v; };
-/* scrive l'orario manuale e, se scelta, la voce con le sue ore */
-function applyTime(p, k, s, e, x, v){
+const numV = t => { const v = parseFloat(String(t).replace(",",".")); return isNaN(v) || v<=0 ? 0 : v; };
+/* voci scelte con le loro ore: [{b: pulsante, v: ore}] */
+const tXList = () => { const btns = [...$("tXBtns").querySelectorAll("button")]; return tXSel.map(b => ({b, v: numV($("tXList").querySelector(`input[data-i="${btns.indexOf(b)}"]`)?.value || "")})); };
+/* scrive l'orario manuale e le voci scelte con le loro ore */
+function applyTime(p, k, s, e, sel){
   state.person = p;
   bucket("presenze", p)[k] = {t:"M", s, e};
-  if(!x || !v) return;
-  const c = x.dataset.c;
-  if(c==="f" || c==="p") writeHours("ferie", k, (c==="f"?ferF:ferP)(p,k) + v, c, x.dataset.y);
-  else writeHours(c, k, hoursOf(c,p,k) + v);
+  for(const {b, v} of sel){
+    if(!v) continue;
+    const c = b.dataset.c;
+    if(c==="f" || c==="p") writeHours("ferie", k, (c==="f"?ferF:ferP)(p,k) + v, c, b.dataset.y);
+    else writeHours(c, k, hoursOf(c,p,k) + v);
+  }
 }
 $("tXBtns").addEventListener("click", e => {
   const x = e.target.closest("button[data-c]"); if(!x) return;
-  setTX(tXSel===x ? null : x);
-  if(tXSel && !tXVal()) $("tXH").focus();
+  if(tXSel.includes(x)){ setTX(tXSel.filter(b => b!==x)); updateCalc(); return; }
+  /* Ferie e Ferie AP (o PAR e PAR AP) insieme no: un solo anno per giorno */
+  const s = $("tStart").value, en = $("tEnd").value;
+  const r = s && en ? timeCalc(s, en) : {ot:0, miss:0};
+  setTX([...tXSel.filter(b => b.dataset.c!==x.dataset.c || (x.dataset.c!=="f" && x.dataset.c!=="p")), x]);
+  /* ore proposte: quelle oltre le 8 (08-17 → 1 h di mensa) o quelle che mancano */
+  const inp = $("tXList").querySelector(`input[data-i="${[...$("tXBtns").querySelectorAll("button")].indexOf(x)}"]`);
+  const prop = r.ot > 0 ? r.ot : r.miss > 0.001 ? r.miss : 0;
+  if(prop) inp.value = r2(prop); else inp.focus();
   updateCalc();
 });
+$("tXList").addEventListener("input", updateCalc);
 /* Invio/"Vai" della tastiera del telefono non deve chiudere i popup: si salva solo col tasto Salva */
 for(const d of ["dlg","rest"]) $(d).addEventListener("keydown", e => { if(e.key==="Enter" && e.target.tagName==="INPUT") e.preventDefault(); });
 $("tStart").addEventListener("input", updateCalc);
@@ -2348,12 +2369,12 @@ $("dlgForm").addEventListener("submit", ev => {
   if(dlgMode==="time"){
     const s = $("tStart").value, e = $("tEnd").value;
     if(!s || !e) return;
-    const key = editing, x = tXSel, v = tXVal();
-    if(x && !v){ ev.preventDefault(); $("tXH").focus(); return; }   /* voce scelta senza ore: il popup resta aperto */
+    const key = editing, sel = tXList(), noH = sel.findIndex(x => !x.v);
+    if(noH >= 0){ ev.preventDefault(); $("tXList").querySelectorAll("input")[noH].focus(); return; }   /* voce scelta senza ore: il popup resta aperto */
     lastTimes = {s, e};
     const ps = multiTime || [{p:state.person, k:key}];
     multiTime = null;
-    commit(() => { ps.forEach(({p,k}) => applyTime(p, k, s, e, x, v)); state.msel = null; });
+    commit(() => { ps.forEach(({p,k}) => applyTime(p, k, s, e, sel)); state.msel = null; });
     if(ps.length===1) askRest(key);
     return;
   }
