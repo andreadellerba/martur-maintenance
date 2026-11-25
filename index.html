@@ -782,6 +782,11 @@ html,body{background:var(--bg)}
   <h2 id="newsTitle">Novità dell'app</h2>
   <p>Le ultime modifiche. Questo messaggio compare una volta sola: lo ritrovi in Impostazioni.</p>
   <div class="news">
+    <section><h3>Novità del 25 novembre</h3><ul>
+      <li>Personale: la colonna Maggiorazione ora si chiama <b>MAGG. 20%</b> e queste ore <b>non contano più nello straordinario</b> totale.</li>
+      <li>Personale: le ore di straordinario <b>prima delle 6 e dopo le 22</b> si pagano al <b>+40%</b> (nuova colonna tra +30% e +50%).</li>
+      <li>Personale: nella riga di report sotto ci sono anche <b>Ferie AP</b> e <b>PAR AP</b>, accanto a Ferie e PAR.</li>
+    </ul></section>
     <section><h3>Novità del 3 novembre</h3><ul>
       <li><b>Orario manuale</b>: i pulsanti Ferie, PAR, Pausa mensa, ecc. ora scelgono le voci, anche più di una insieme (si accendono, riclicca per toglierle), e sotto ognuna ha le sue ore. Il popup si chiude solo con <b>Salva</b>. La descrizione sopra tiene conto delle voci scelte: 08:00-17:00 con 1 h di pausa mensa = 8 ore, niente straordinario.</li>
       <li>Report: tolte le colonne <b>06-14</b> e <b>14-22</b>; dopo Mensa c'è la colonna <b>Ticket</b> con il totale di ogni dipendente (anche per i mesi passati).</li>
@@ -868,7 +873,7 @@ const CATS = [
   {id:"malattia", label:"MALATTIA", hint:"Clicca una casella o trascina su più giorni, poi scegli le ore (8 h = giornata intera)."},
   {id:"cigo", label:"CIGO", hint:"Si compila da sola quando assegni le ore mancanti di una giornata. Clicca una casella o trascina su più giorni per inserire o correggere a mano."},
   {id:"report", label:"REPORT", hint:"Scegli le date o un periodo rapido. I conti usano gli stessi dati di presenze, straordinario, ferie, PAR, malattia e CIGO."},
-  {id:"personale", label:"PERSONALE", hint:"Turno di base: centrale 07:00-15:00 nei giorni lavorativi. Lo straordinario si calcola dagli orari: 06-07 e 15-18 +25%, 18-22 +20%, dalla 3ª ora +30%, sabato +50%, domenica e festivi +55%."},
+  {id:"personale", label:"PERSONALE", hint:"Turno di base: centrale 07:00-15:00 nei giorni lavorativi. Lo straordinario si calcola dagli orari: 06-07 e 15-18 +25%, 18-22 MAGG. 20% (non conta nello straordinario), dalla 3ª ora +30%, prima delle 6 e dopo le 22 +40%, sabato +50%, domenica e festivi +55%."},
   {id:"impostazioni", label:"IMPOSTAZIONI", hint:"Il tema chiaro o scuro vale solo per questo dispositivo. I colori scelti valgono per tutti e due."}
 ];
 const HOURCATS = ["straordinario","ferie","malattia","cigo"];
@@ -1009,7 +1014,7 @@ function shiftSpan(v){
 function uscSpan(p,k){ const v = get("uscita",p,k); if(v && typeof v==="object" && v.s && v.e){ const a = mins(v.s); let b = mins(v.e); if(b<=a) b += 1440; return [a,b]; } return null; }
 function uscH(p,k){ const sp = uscSpan(p,k); return sp ? (sp[1]-sp[0])/60 : (Number(get("uscita",p,k)) || 0); }
 /* personale: l'orario normale è il turno scelto (con l'orario manuale il centrale 07-15); fuori è straordinario.
-   Feriali: 06-07 e 15-18 +25%, 18-22 +20%, dalla 3ª ora +30%. Sabato: prime 8 ore +50%, dalla 9ª +55%. Domenica e festivi +55%. */
+   Feriali: 06-07 e 15-18 +25%, 18-22 MAGG. 20% (fuori dallo straordinario), dalla 3ª ora +30%, prima delle 6 e dopo le 22 +40%. Sabato: prime 8 ore +50%, dalla 9ª +55%. Domenica e festivi +55%. */
 function staffCalc(v,p,k){
   const sp = v!==undefined ? shiftSpan(v) : null;
   /* orario normale: il turno scelto; con l'orario manuale" le 8 ore dentro l'orario più vicine al 07-15 (10-18 è tutto normale) */
@@ -1035,10 +1040,12 @@ function staffCalc(v,p,k){
   for(const m of minutes){
     if(m>=win[0] && m<win[1]){ inside++; continue; }
     otm++;
-    const t = m % 1440, r = otm>120 ? 30 : (t>=1080 && t<1320) ? 20 : 25;
+    /* prima delle 6 e dopo le 22: +40% */
+    const t = m % 1440, r = (t<360 || t>=1320) ? 40 : otm>120 ? 30 : (t>=1080 && t<1320) ? 20 : 25;
     bm[r] = (bm[r] || 0) + 1;
   }
-  return {dur, ot:otm/60, worked:Math.min(DAY_H, Math.max(0, inside - mm)/60), bands:Object.entries(bm).map(([r,n]) => [Number(r), n/60])};
+  /* la MAGG. 20% (18-22) non conta nello straordinario totale */
+  return {dur, ot:(otm - (bm[20] || 0))/60, worked:Math.min(DAY_H, Math.max(0, inside - mm)/60), bands:Object.entries(bm).map(([r,n]) => [Number(r), n/60])};
 }
 /* ore di straordinario del periodo divise per maggiorazione: {25: 3, 30: 1, ...} */
 function staffBands(p){
@@ -1461,14 +1468,16 @@ function staffReportHTML(p){
   const keys = viewDays().map(x => x.key), st = statsRange(p, keys), bands = staffBands(p);
   const sum = fn => keys.reduce((a,k) => a + fn(p,k), 0);
   const tk = sum((q,k) => Number(get("ticket",q,k)) || 0), us = sum(uscH);
+  /* ferie e PAR dell'anno precedente, separati (quelli contati come CIGO restano nella CIGO) */
+  const fAP = sum((q,k) => ferA(q,k) && !get("ferie",q,k)?.fc ? ferF(q,k) : 0), pAP = sum((q,k) => parA(q,k) && !get("ferie",q,k)?.pc ? ferP(q,k) : 0);
   const z = n => n > 0.001 ? fmt(n) : `<span class="zero">–</span>`;
   /* uscite in ore scritte per esteso: "2 ore", "1 ora", "1,5 ore" */
   const zh = n => n > 0.001 ? (Math.abs(n - 1) < 0.001 ? "1 ora" : fmt(n) + " ore") : `<span class="zero">–</span>`;
   const zg = n => n > 0.001 ? (Math.abs(n - 1) < 0.001 ? "1 giorno" : fmt(n) + " gg") : `<span class="zero">–</span>`;
   const cols = [
-    ["Giorni", st.gg, "", zg], ["Ore ordinarie", st.ord, "c-pres", zh], ["Straord.", st.ot, "c-stra", zh], ["Totale ore", st.ord + st.ot, "tot", zh],
-    ...[20,25,30,50,55].map(r => [r===20 ? "Maggiorazione" : `+${r}%`, bands[r] || 0, "c-stra", zh]),
-    ["Ferie", st.f, "c-ferie", zh], ["PAR", st.par, "c-par", zh], ["Malattia", st.mal, "c-mal", zh], ["CIGO", st.cig, "c-cigo", zh],
+    ["Giorni", st.gg, "", zg], ["Ore ordinarie", st.ord, "c-pres", zh], ["Straord.", st.ot, "c-stra", zh], ["Totale ore", st.ord + st.ot + (bands[20] || 0), "tot", zh],
+    ...[20,25,30,40,50,55].map(r => [r===20 ? "MAGG. 20%" : `+${r}%`, bands[r] || 0, "c-stra", zh]),
+    ["Ferie", st.f - fAP, "c-ferie", zh], ["Ferie AP", fAP, "c-ferie", zh], ["PAR", st.par - pAP, "c-par", zh], ["PAR AP", pAP, "c-par", zh], ["Malattia", st.mal, "c-mal", zh], ["CIGO", st.cig, "c-cigo", zh],
     ["Visita med.", st.vis, "c-vis", zh], ["Mensa", st.men, "c-men", zh], ["Uscite", us, "c-usc", zh], ["Ticket", tk, "c-tic"]
   ];
   return `<div class="rp-scroll s-rep"><table class="rp"><thead><tr><th class="l"></th>${cols.map(c => `<th class="${c[2]}">${c[0]}</th>`).join("")}</tr></thead>
@@ -1494,7 +1503,7 @@ function nameLines(p, cat){
     if(str) L("--c-stra", `+${fmt(str)} ORE EXTRA`);
     if(isStaff(p)){
       const bands = staffBands(p);
-      for(const r of Object.keys(bands).map(Number).sort((a,b) => a-b)) if(bands[r] > 0.001) L("--c-stra", `EXTRA +${r}%: ${fmt(bands[r])} H`);
+      for(const r of Object.keys(bands).map(Number).sort((a,b) => a-b)) if(bands[r] > 0.001) L("--c-stra", r===20 ? `MAGG. 20%: ${fmt(bands[r])} H` : `EXTRA +${r}%: ${fmt(bands[r])} H`);
       const tk = sum((q,k) => Number(get("ticket",q,k)) || 0), us = sum(uscH), vis = sum(visH), men = sum(menH);
       if(vis) L("--c-vis", `+${fmt(vis)} H VISITA MEDICA`);
       if(men) L("--c-men", `+${fmt(men)} H PAUSA MENSA`);
@@ -3074,7 +3083,7 @@ $("settings").addEventListener("click", e => {
 });
 
 /* novità: compaiono una volta per ogni aggiornamento, poi si riaprono da Impostazioni */
-const NEWS_KEY = "registro-novita", NEWS_VER = "2026-11-03";
+const NEWS_KEY = "registro-novita", NEWS_VER = "2026-11-25";
 function showNews(force){ if(force || lsGet(NEWS_KEY)!==NEWS_VER){ if(!$("newsDlg").open) $("newsDlg").showModal(); $("newsDlg").scrollTop = 0; } }
 $("newsOk").onclick = () => { lsSet(NEWS_KEY, NEWS_VER); $("newsDlg").close(); };
 $("newsDlg").addEventListener("close", () => lsSet(NEWS_KEY, NEWS_VER));
