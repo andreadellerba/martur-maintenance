@@ -1023,7 +1023,8 @@ function staffCalc(v,p,k){
   let win = !sp ? [420,900] : sp;
   /* la pausa mensa non è lavoro: allunga l'orario normale della sua durata (07-15:30 con mezz'ora di mensa = 8 ore, niente straordinario) */
   const mm = Math.round(menH(p,k) * 60), L = 480 + mm;
-  if(sp && sid(v)==="M" && sp[1]-sp[0] > L) win = [sp[0], sp[0]+L];
+  /* anche i turni da 8 ore e mezza (pulsante 14:00-22:30): le prime 8 normali, la mezz'ora dopo è straordinario */
+  if(sp && sp[1]-sp[0] > L) win = [sp[0], sp[0]+L];
   else if(sp && sid(v)!=="M" && mm) win = [win[0], win[1] + mm];
   const segs = sp ? [sp] : [];
   const us = uscSpan(p,k);
