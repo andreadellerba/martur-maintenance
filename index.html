@@ -784,7 +784,7 @@ html,body{background:var(--bg)}
   <div class="news">
     <section><h3>Novità del 25 novembre</h3><ul>
       <li>Personale: la colonna Maggiorazione ora si chiama <b>MAGG. 20%</b> e queste ore <b>non contano più nello straordinario</b> totale.</li>
-      <li>Personale: le ore di straordinario <b>prima delle 6 e dopo le 22</b> si pagano al <b>+40%</b> (nuova colonna tra +30% e +50%).</li>
+      <li>Personale: le ore <b>18-22</b> vanno sempre in MAGG. 20%; quelle <b>prima delle 6 e dopo le 22</b> si pagano al <b>+40%</b> (nuova colonna tra +30% e +50%).</li>
       <li>Personale: nella riga di report sotto ci sono anche <b>Ferie AP</b> e <b>PAR AP</b>, accanto a Ferie e PAR.</li>
     </ul></section>
     <section><h3>Novità del 3 novembre</h3><ul>
@@ -1039,13 +1039,15 @@ function staffCalc(v,p,k){
   let inside = 0, otm = 0; const bm = {};
   for(const m of minutes){
     if(m>=win[0] && m<win[1]){ inside++; continue; }
+    const t = m % 1440;
+    /* 18-22: sempre MAGG. 20%, a parte: non è straordinario e non conta per la 3ª ora */
+    if(t>=1080 && t<1320){ bm[20] = (bm[20] || 0) + 1; continue; }
     otm++;
     /* prima delle 6 e dopo le 22: +40% */
-    const t = m % 1440, r = (t<360 || t>=1320) ? 40 : otm>120 ? 30 : (t>=1080 && t<1320) ? 20 : 25;
+    const r = (t<360 || t>=1320) ? 40 : otm>120 ? 30 : 25;
     bm[r] = (bm[r] || 0) + 1;
   }
-  /* la MAGG. 20% (18-22) non conta nello straordinario totale */
-  return {dur, ot:(otm - (bm[20] || 0))/60, worked:Math.min(DAY_H, Math.max(0, inside - mm)/60), bands:Object.entries(bm).map(([r,n]) => [Number(r), n/60])};
+  return {dur, ot:otm/60, worked:Math.min(DAY_H, Math.max(0, inside - mm)/60), bands:Object.entries(bm).map(([r,n]) => [Number(r), n/60])};
 }
 /* ore di straordinario del periodo divise per maggiorazione: {25: 3, 30: 1, ...} */
 function staffBands(p){
