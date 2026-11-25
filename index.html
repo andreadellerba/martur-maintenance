@@ -784,7 +784,7 @@ html,body{background:var(--bg)}
   <div class="news">
     <section><h3>Novità del 25 novembre</h3><ul>
       <li>Personale: la colonna Maggiorazione ora si chiama <b>MAGG. 20%</b> e queste ore <b>non contano più nello straordinario</b> totale.</li>
-      <li>Personale, orario manuale: le <b>prime 8 ore</b> sono normali, il resto è straordinario (prime 2 ore +25%, poi +30%, dopo le 22 +40%). Esempio: <b>10:00-22:30</b> = 8 ore normali e 4,5 ore di straordinario. La MAGG. 20% vale per le ore normali tra le 18 e le 22.</li>
+      <li>Personale, orario manuale: le <b>prime 8 ore</b> sono normali, il resto è straordinario (prime 2 ore +25%, poi +30%, dopo le 22 +40%). Esempio: <b>10:00-22:30</b> = 8 ore normali e 4,5 ore di straordinario. Prima delle 6 e dopo le 22 è sempre straordinario al +40%: <b>05:30-14:00</b> e <b>14:00-22:30</b> = 8 ore normali e mezz'ora al +40%. La MAGG. 20% vale per le ore normali tra le 18 e le 22.</li>
       <li>Personale: le ore di straordinario <b>prima delle 6 e dopo le 22</b> si pagano al <b>+40%</b> (nuova colonna tra +30% e +50%).</li>
       <li>Personale: nella riga di report sotto ci sono anche <b>Ferie AP</b> e <b>PAR AP</b>, accanto a Ferie e PAR.</li>
     </ul></section>
@@ -874,7 +874,7 @@ const CATS = [
   {id:"malattia", label:"MALATTIA", hint:"Clicca una casella o trascina su più giorni, poi scegli le ore (8 h = giornata intera)."},
   {id:"cigo", label:"CIGO", hint:"Si compila da sola quando assegni le ore mancanti di una giornata. Clicca una casella o trascina su più giorni per inserire o correggere a mano."},
   {id:"report", label:"REPORT", hint:"Scegli le date o un periodo rapido. I conti usano gli stessi dati di presenze, straordinario, ferie, PAR, malattia e CIGO."},
-  {id:"personale", label:"PERSONALE", hint:"Turno di base: centrale 07:00-15:00 nei giorni lavorativi. Con l'orario manuale le prime 8 ore sono normali, il resto è straordinario: prime 2 ore +25%, dalla 3ª ora +30%, prima delle 6 e dopo le 22 +40%. Le ore normali tra le 18 e le 22 hanno la MAGG. 20% (non conta nello straordinario), sabato +50%, domenica e festivi +55%."},
+  {id:"personale", label:"PERSONALE", hint:"Turno di base: centrale 07:00-15:00 nei giorni lavorativi. Prima delle 6 e dopo le 22 è sempre straordinario; tra le 6 e le 22 le prime 8 ore sono normali, il resto è straordinario: prime 2 ore +25%, dalla 3ª ora +30%, prima delle 6 e dopo le 22 +40%. Le ore normali tra le 18 e le 22 hanno la MAGG. 20% (non conta nello straordinario), sabato +50%, domenica e festivi +55%."},
   {id:"impostazioni", label:"IMPOSTAZIONI", hint:"Il tema chiaro o scuro vale solo per questo dispositivo. I colori scelti valgono per tutti e due."}
 ];
 const HOURCATS = ["straordinario","ferie","malattia","cigo"];
@@ -1023,9 +1023,12 @@ function staffCalc(v,p,k){
   let win = !sp ? [420,900] : sp;
   /* la pausa mensa non è lavoro: allunga l'orario normale della sua durata (07-15:30 con mezz'ora di mensa = 8 ore, niente straordinario) */
   const mm = Math.round(menH(p,k) * 60), L = 480 + mm;
-  /* anche i turni da 8 ore e mezza (pulsante 14:00-22:30): le prime 8 normali, la mezz'ora dopo è straordinario */
-  if(sp && sp[1]-sp[0] > L) win = [sp[0], sp[0]+L];
-  else if(sp && sid(v)!=="M" && mm) win = [win[0], win[1] + mm];
+  /* prima delle 6 e dopo le 22 è sempre straordinario (+40%); dentro le 06-22 le prime 8 ore sono normali, il resto straordinario
+     (05:30-14 = 06-14 normale + mezz'ora al 40%; 14-22:30 = 14-22 + mezz'ora al 40%; 10-22:30 = 10-18 + 4,5 ore) */
+  if(sp){
+    const d = sp[0] - sp[0] % 1440, lo = Math.max(sp[0], d + 360), hi = Math.max(lo, Math.min(sp[1], d + 1320));
+    win = hi - lo > L ? [lo, lo + L] : [lo, hi + (sid(v)!=="M" ? mm : 0)];
+  }
   const segs = sp ? [sp] : [];
   const us = uscSpan(p,k);
   if(us) segs.push(us); else { const n = Number(get("uscita",p,k)) || 0; if(n && sp) segs.push([sp[1], sp[1] + n*60]); }
