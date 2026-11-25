@@ -178,6 +178,7 @@ select.today,.jump{background:var(--surface);color:var(--text);font:inherit;font
 .cell.tfx .sep{width:14px;height:1.5px;background:currentColor;opacity:.45}
 .cell.tfx .band{width:100%;display:flex;flex-direction:column;background:var(--on-fill)}
 .cell.tfx .bx{font-family:var(--display);font-size:11px;font-weight:700;line-height:1;color:var(--mc);text-align:center;padding:3px 0;white-space:nowrap;border-top:1px solid var(--surface-2)}
+.cell.tfx .bx.apx{letter-spacing:-.05em}
 .cell.tfx .bx:first-child{border-top:0}
 .cell.tfx .fest{margin:3px 0 0}
 @media (max-width:1300px){.cell.tfx .tm b{font-size:12px}.cell.tfx .bx{font-size:10px}}
@@ -1368,7 +1369,7 @@ function cellHTML(p, x, hol, big){
       const id = sid(v), s = SHIFTS[id];
       const [a,b] = id==="M" ? [v.s, v.e] : (s ? s.time.split("-") : ["",""]);
       cls.push("shift","tfx"); style = `--ac:var(${s ? s.color : "--sm"})`;
-      const band = abs.map(x => `<span class="bx" style="--mc:var(${x.color})">${x.short} ${fmt(x.hours)}H</span>`);
+      const band = abs.map(x => `<span class="bx${absAP(x,p,k) ? " apx" : ""}" style="--mc:var(${x.color})">${absShort(x,p,k)} ${fmt(x.hours)}H</span>`);   /* "PAR AP 2H", "FER AP 4H": anno precedente a colpo d'occhio */
       if(ot){ band.push(`<span class="bx" style="--mc:var(--c-stra)">+${fmt(ot)}H</span>`); aria += `, straordinario ${fmt(ot)} ore`; }
       const miss = isWorkday(k) && covered(p,k)>0 && covered(p,k)<DAY_H ? DAY_H - covered(p,k) : 0;
       if(miss){ band.push(`<span class="bx" style="--mc:var(--weekend)" title="Mancano ${fmt(miss)} ore">−${fmt(miss)}H</span>`); aria += `, mancano ${fmt(miss)} ore`; }
