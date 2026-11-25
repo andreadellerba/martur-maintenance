@@ -784,6 +784,7 @@ html,body{background:var(--bg)}
   <div class="news">
     <section><h3>Novità del 25 novembre</h3><ul>
       <li>Personale: la colonna Maggiorazione ora si chiama <b>MAGG. 20%</b> e queste ore <b>non contano più nello straordinario</b> totale.</li>
+      <li>Personale, orario manuale: le <b>prime 8 ore</b> sono normali, il resto è straordinario (prime 2 ore +25%, poi +30%, dopo le 22 +40%). Esempio: <b>10:00-22:30</b> = 8 ore normali e 4,5 ore di straordinario. La MAGG. 20% vale per le ore normali tra le 18 e le 22.</li>
       <li>Personale: le ore di straordinario <b>prima delle 6 e dopo le 22</b> si pagano al <b>+40%</b> (nuova colonna tra +30% e +50%).</li>
       <li>Personale: nella riga di report sotto ci sono anche <b>Ferie AP</b> e <b>PAR AP</b>, accanto a Ferie e PAR.</li>
     </ul></section>
@@ -873,7 +874,7 @@ const CATS = [
   {id:"malattia", label:"MALATTIA", hint:"Clicca una casella o trascina su più giorni, poi scegli le ore (8 h = giornata intera)."},
   {id:"cigo", label:"CIGO", hint:"Si compila da sola quando assegni le ore mancanti di una giornata. Clicca una casella o trascina su più giorni per inserire o correggere a mano."},
   {id:"report", label:"REPORT", hint:"Scegli le date o un periodo rapido. I conti usano gli stessi dati di presenze, straordinario, ferie, PAR, malattia e CIGO."},
-  {id:"personale", label:"PERSONALE", hint:"Turno di base: centrale 07:00-15:00 nei giorni lavorativi. Lo straordinario si calcola dagli orari: 06-07 e 15-18 +25%, 18-22 MAGG. 20% (non conta nello straordinario), dalla 3ª ora +30%, prima delle 6 e dopo le 22 +40%, sabato +50%, domenica e festivi +55%."},
+  {id:"personale", label:"PERSONALE", hint:"Turno di base: centrale 07:00-15:00 nei giorni lavorativi. Con l'orario manuale le prime 8 ore sono normali, il resto è straordinario: prime 2 ore +25%, dalla 3ª ora +30%, prima delle 6 e dopo le 22 +40%. Le ore normali tra le 18 e le 22 hanno la MAGG. 20% (non conta nello straordinario), sabato +50%, domenica e festivi +55%."},
   {id:"impostazioni", label:"IMPOSTAZIONI", hint:"Il tema chiaro o scuro vale solo per questo dispositivo. I colori scelti valgono per tutti e due."}
 ];
 const HOURCATS = ["straordinario","ferie","malattia","cigo"];
@@ -1013,15 +1014,16 @@ function shiftSpan(v){
 /* uscita di servizio: orario dalle/alle (prima era solo un numero di ore, tenuto per compatibilità) */
 function uscSpan(p,k){ const v = get("uscita",p,k); if(v && typeof v==="object" && v.s && v.e){ const a = mins(v.s); let b = mins(v.e); if(b<=a) b += 1440; return [a,b]; } return null; }
 function uscH(p,k){ const sp = uscSpan(p,k); return sp ? (sp[1]-sp[0])/60 : (Number(get("uscita",p,k)) || 0); }
-/* personale: l'orario normale è il turno scelto (con l'orario manuale il centrale 07-15); fuori è straordinario.
-   Feriali: 06-07 e 15-18 +25%, 18-22 MAGG. 20% (fuori dallo straordinario), dalla 3ª ora +30%, prima delle 6 e dopo le 22 +40%. Sabato: prime 8 ore +50%, dalla 9ª +55%. Domenica e festivi +55%. */
+/* personale: l'orario normale è il turno scelto (con l'orario manuale le prime 8 ore); fuori è straordinario.
+   Feriali: straordinario prime 2 ore +25%, dalla 3ª ora +30%, prima delle 6 e dopo le 22 +40%.
+   Le ore normali tra le 18 e le 22 hanno la MAGG. 20% (fuori dallo straordinario). Sabato: prime 8 ore +50%, dalla 9ª +55%. Domenica e festivi +55%. */
 function staffCalc(v,p,k){
   const sp = v!==undefined ? shiftSpan(v) : null;
-  /* orario normale: il turno scelto; con l'orario manuale" le 8 ore dentro l'orario più vicine al 07-15 (10-18 è tutto normale) */
+  /* orario normale: il turno scelto; con l'orario manuale le prime 8 ore (10-22:30 = 10-18 normale, poi straordinario) */
   let win = !sp ? [420,900] : sp;
   /* la pausa mensa non è lavoro: allunga l'orario normale della sua durata (07-15:30 con mezz'ora di mensa = 8 ore, niente straordinario) */
   const mm = Math.round(menH(p,k) * 60), L = 480 + mm;
-  if(sp && sid(v)==="M" && sp[1]-sp[0] > L){ const ws = Math.min(Math.max(420, sp[0]), sp[1]-L); win = [ws, ws+L]; }
+  if(sp && sid(v)==="M" && sp[1]-sp[0] > L) win = [sp[0], sp[0]+L];
   else if(sp && sid(v)!=="M" && mm) win = [win[0], win[1] + mm];
   const segs = sp ? [sp] : [];
   const us = uscSpan(p,k);
@@ -1038,14 +1040,15 @@ function staffCalc(v,p,k){
   }
   let inside = 0, otm = 0; const bm = {};
   for(const m of minutes){
-    if(m>=win[0] && m<win[1]){ inside++; continue; }
+    const t = m % 1440;
+    /* ore normali tra le 18 e le 22: MAGG. 20%, non è straordinario */
+    if(m>=win[0] && m<win[1]){ inside++; if(t>=1080 && t<1320) bm[20] = (bm[20] || 0) + 1; continue; }
     otm++;
     /* prima delle 6 e dopo le 22: +40% */
-    const t = m % 1440, r = (t<360 || t>=1320) ? 40 : otm>120 ? 30 : (t>=1080 && t<1320) ? 20 : 25;
+    const r = (t<360 || t>=1320) ? 40 : otm>120 ? 30 : 25;
     bm[r] = (bm[r] || 0) + 1;
   }
-  /* la MAGG. 20% (18-22) non conta nello straordinario totale */
-  return {dur, ot:(otm - (bm[20] || 0))/60, worked:Math.min(DAY_H, Math.max(0, inside - mm)/60), bands:Object.entries(bm).map(([r,n]) => [Number(r), n/60])};
+  return {dur, ot:otm/60, worked:Math.min(DAY_H, Math.max(0, inside - mm)/60), bands:Object.entries(bm).map(([r,n]) => [Number(r), n/60])};
 }
 /* ore di straordinario del periodo divise per maggiorazione: {25: 3, 30: 1, ...} */
 function staffBands(p){
@@ -2227,7 +2230,7 @@ function staffPreview(s, e){
   }
   const saved = data.presenze?.[p]?.[k]; bucket("presenze",p)[k] = {t:"M", s, e};
   const r = baseCalc(p,k); if(saved===undefined) delete bucket("presenze",p)[k]; else bucket("presenze",p)[k] = saved;
-  return `<strong>${fmt(r.worked)} h</strong> normali, <strong>${fmt(r.ot)} h</strong> di straordinario (fuori dal 07-15)`;
+  return `<strong>${fmt(r.worked)} h</strong> normali, <strong>${fmt(r.ot)} h</strong> di straordinario`;
 }
 function updateCalc(){
   const s = $("tStart").value, e = $("tEnd").value;
@@ -2250,7 +2253,7 @@ function timePreview(s, e){
   const lc = t => /^[A-Z]{2}/.test(t) ? t : t[0].toLowerCase() + t.slice(1);   /* "Ferie AP" → "ferie AP", PAR e CIGO restano */
   const xs = sel.filter(x => x.v).map(x => `, <strong>${fmt(x.v)} h</strong> di ${lc(x.b.textContent)}`).join("");
   return `<strong>${fmt(w)} h</strong> ${isStaff(p) ? "normali" : "lavorate"}${xs}`
-    + (ot ? `, <strong>${fmt(ot)} h</strong> di straordinario` + (isStaff(p) ? " (fuori dal 07-15)" : "") : ", niente straordinario")
+    + (ot ? `, <strong>${fmt(ot)} h</strong> di straordinario` : ", niente straordinario")
     + (miss > 0.001 ? `, restano <strong>${fmt(miss)} h</strong> da coprire` : "");
 }
 /* turno manuale + voci: i pulsanti scelgono una o più voci (riclicca per toglierle), ognuna con le sue ore; si salva solo col tasto Salva */
