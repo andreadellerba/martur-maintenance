@@ -263,6 +263,7 @@ dialog textarea{width:100%;font:inherit;font-size:15px;padding:8px 10px;border:1
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
 .chips button{flex:1;padding:8px 0;border:1px solid var(--line-2);border-radius:8px;background:none;cursor:pointer;font-weight:600;font-variant-numeric:tabular-nums}
 .chips button:hover{border-color:var(--accent);color:var(--accent)}
+.chips button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,transparent)}
 .chips .restchip{flex-basis:100%;border-style:dashed;color:var(--accent)}
 .trow{display:flex;gap:8px;margin-bottom:6px}
 .trow label{flex:1;font-size:13px;color:var(--muted)}
@@ -788,6 +789,8 @@ html,body{background:var(--bg)}
       <li>Personale, orario manuale: le <b>prime 8 ore</b> sono normali, il resto è straordinario (prime 2 ore +25%, poi +30%, dopo le 22 +40%). Esempio: <b>10:00-22:30</b> = 8 ore normali e 4,5 ore di straordinario. Prima delle 6 e dopo le 22 è sempre straordinario al +40%: <b>05:30-14:00</b> e <b>14:00-22:30</b> = 8 ore normali e mezz'ora al +40%. La MAGG. 20% vale per le ore normali tra le 18 e le 22.</li>
       <li>Personale: le ore di straordinario <b>prima delle 6 e dopo le 22</b> si pagano al <b>+40%</b> (nuova colonna tra +30% e +50%).</li>
       <li>Personale: nella riga di report sotto ci sono anche <b>Ferie AP</b> e <b>PAR AP</b>, accanto a Ferie e PAR.</li>
+      <li>Ferie, PAR e malattia: i pulsanti 1 h, 2 h, 4 h, 8 h scrivono solo le ore e il popup resta aperto: puoi ancora scegliere <b>Anno precedente</b> o <b>Contalo come CIGO</b>, poi <b>Salva</b>.</li>
+      <li>Nella barretta delle caselle le ore dell'anno precedente si leggono subito: <b>FER AP 4H</b>, <b>PAR AP 2H</b>.</li>
     </ul></section>
     <section><h3>Novità del 3 novembre</h3><ul>
       <li><b>Orario manuale</b>: i pulsanti Ferie, PAR, Pausa mensa, ecc. ora scelgono le voci, anche più di una insieme (si accendono, riclicca per toglierle), e sotto ognuna ha le sue ore. Il popup si chiude solo con <b>Salva</b>. La descrizione sopra tiene conto delle voci scelte: 08:00-17:00 con 1 h di pausa mensa = 8 ore, niente straordinario.</li>
@@ -2371,8 +2374,15 @@ function saveHours(v){
   });
   if(!["straordinario","ticket","uscita"].includes(cat)) askRest(key);
 }
+$("hours").addEventListener("input", () => $("chips").querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", "false")));
 $("chips").addEventListener("click", e => {
   const x = e.target.closest("button"); if(!x) return;
+  /* ferie, PAR e malattia: il pulsante scrive solo le ore, così si può ancora scegliere Anno precedente / CIGO; si salva con Salva */
+  if(EXTRA.includes(dlgMode)){
+    $("hours").value = x.dataset.h;
+    $("chips").querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b===x));
+    return;
+  }
   $("dlg").close(); saveHours(Number(x.dataset.h));
 });
 $("dlgForm").addEventListener("submit", ev => {
